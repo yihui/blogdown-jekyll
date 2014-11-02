@@ -82,6 +82,7 @@ knitr::kable(head(mtcars))
 |Valiant           | 18.1|   6|  225| 105| 2.76| 3.46| 20.2|  1|  0|    3|    1|
 
 
+
 {% highlight r %}
 (function() {
     if (TRUE) 
@@ -104,9 +105,7 @@ names(formals(servr::jekyll))  # arguments of the jekyll() function
 
 
 {% highlight text %}
-## [1] "dir"            "input"          "output"        
-## [4] "script"         "baseurl"        "port"          
-## [7] "launch.browser"
+## [1] "dir"     "input"   "output"  "script"  "baseurl" "..."
 {% endhighlight %}
 
 Just to test inline R expressions[^2] in **knitr**, we know the first element in `x` (created in the code chunk above) is 9.44. You can certainly draw some graphs as well:
@@ -119,7 +118,7 @@ par(mar = c(4, 4, 0.1, 0.1))
 plot(cars, pch = 19, col = "red")  # a scatterplot
 {% endhighlight %}
 
-![A scatterplot of the cars data](http://db.yihui.name/jekyll/2014-09-28-jekyll-with-knitr/cars.png) 
+![A scatterplot of the cars data](http://db.yihui.name/jekyll/2014-09-28-jekyll-with-knitr/cars-1.png) 
 
 ## The build script
 
@@ -128,7 +127,7 @@ Zero-configuration is required for `servr::jekyll()` to work on your Jekyll webs
 
 {% highlight r %}
 jekyll(dir = ".", input = c(".", "_source", "_posts"), output = c(".", 
-    "_posts", "_posts"), script = "build.R", baseurl, port, launch.browser)
+    "_posts", "_posts"), script = "build.R", baseurl, ...)
 {% endhighlight %}
 
 By default, `jekyll()` looks for `.Rmd` files under the root directory, the `_source` directory, and the `_posts` directory of the Jekyll website. For example, if you put your R Markdown posts under `_source`, they will be compiled to the `_posts` directory[^3].
@@ -143,9 +142,9 @@ See `?servr::jekyll` for more details. You can define all your **knitr** options
 
 ## On the Markdown renderers
 
-Jekyll supports a number of Markdown renderers, such as kramdown, redcarpet, rdiscount, and so on. At the moment, it is a little annoying that kramdown supports LaTeX math expressions via `$$ math $$`[^4], but does not support syntax highlighting of code blocks using the three backticks syntax (you must write the awkward Liquid tags); on the other hand, redcarpet does not support LaTeX math but does support three backticks. In my opinion, all the different flavors and implmentations of Markdown is the biggest problem of Markdown, since there is not an unambiguous spec for Markdown. [CommonMark](http://commonmark.org) looks like a promising project to set up a common spec for Markdown, and [Pandoc](http://johnmacfarlane.net/pandoc/) is a great implementation that has brought almost all the features that you may ever need in Markdown. You may find some Pandoc plugins for Jekyll by searching online. However, GitHub Pages does not support arbitrary Jekyll plugins, so you cannot just use a Pandoc plugin there, but that does not mean you cannot use Pandoc locally, nor does it mean you cannot push locally compiled HTML pages to GitHub Pages[^5].
+Jekyll supports a number of Markdown renderers, such as kramdown, redcarpet, rdiscount, and so on. At the moment, it is a little annoying that kramdown supports LaTeX math expressions via `$$ math $$`[^4], but does not support syntax highlighting of code blocks using the three backticks syntax (you must write the awkward Liquid tags); on the other hand, redcarpet does not support LaTeX math but does support three backticks. In my opinion, all the different flavors and implementations of Markdown is the biggest problem of Markdown, since there is not an unambiguous spec for Markdown. [CommonMark](http://commonmark.org) looks like a promising project to set up a common spec for Markdown, and [Pandoc](http://johnmacfarlane.net/pandoc/) is a great implementation that has brought almost all the features that you may ever need in Markdown. You may find some Pandoc plugins for Jekyll by searching online. However, GitHub Pages does not support arbitrary Jekyll plugins, so you cannot just use a Pandoc plugin there, but that does not mean you cannot use Pandoc locally, nor does it mean you cannot push locally compiled HTML pages to GitHub Pages[^5].
 
-[^4]: Unfortunately, kramdown does not support math expressions in single dollors, e.g. `$ \alpha $`.
+[^4]: Unfortunately, kramdown does not support math expressions in single dollars, e.g. `$ \alpha $`.
 
 [^5]: If you choose to generate your Jekyll website locally, and push the HTML files to GitHub, you will need the file [`.nojekyll`](https://help.github.com/articles/using-jekyll-with-pages) in the root directory of your website.
 
