@@ -18,7 +18,7 @@ As a result, all you need to do is write your blog posts (R Markdown documents),
 
 ## Prerequisites
 
-You must have installed the packages **servr** (>= 0.1.4) and **knitr** (>= 1.6.20). If you do not see them on CRAN, you may temporarily install from GitHub:
+You must have installed the packages **servr** (>= 0.1.12) and **knitr** (>= 1.8). If you do not see them on CRAN, you may temporarily install from GitHub:
 
 ```{r eval=FALSE, tidy=FALSE}
 install.packages(
