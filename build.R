@@ -6,7 +6,7 @@ local({
   # engine is kramdown)
   if (length(x) == 0 || (length(x) == 1 && strsplit(x, ':\\s*')[[1]][2] == 'kramdown')) {
     knitr::render_jekyll()
-  }
+  } else knitr::render_markdown()
 })
 local({
   # input/output filenames are passed as two additional arguments to Rscript
