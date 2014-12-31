@@ -67,7 +67,7 @@ By default, `jekyll()` looks for `.Rmd` files under the root directory, the `_so
 
 [^3]: The reason that we may need to write R Markdown posts in `_source` instead of `_posts` is that Jekyll seems to have a subtle bug at the moment: its variable `site.posts` will count `.Rmd` files under `_posts` as well. The consequence is, if you list all the posts of your website, the post `_posts/yyyy-mm-dd-foo.md` will show up twice due to the existence of `_posts/yyyy-mm-dd-foo.Rmd`, therefore I would recommend you to put your R Markdown posts in a separate directory, such as `_source`.
 
-The `script` argument specifies an R script to be used to compile your R Markdown files. It is called via command line of the form
+The `script` argument specifies a Makefile or an R script to be used to compile your R Markdown files. If it is a Makefile, `jekyll()` will run `make -q` to see if the site needs to be recompiled, then `make` if it does. If the script is an R script, say, named `build.R`, it is called via command line of the form
 
     Rscript build.R arg1 arg2
 
