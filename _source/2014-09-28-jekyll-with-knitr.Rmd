@@ -18,14 +18,10 @@ As a result, all you need to do is write your blog posts (R Markdown documents),
 
 ## Prerequisites
 
-You must have installed the packages **servr** (>= 0.1.12) and **knitr** (>= 1.8). If you do not see them on CRAN, you may temporarily install from GitHub:
+You must have installed the packages **servr** (>= 0.2) and **knitr** (>= 1.8).
 
-```{r eval=FALSE, tidy=FALSE}
-install.packages(
-  c('servr', 'knitr'),
-  type = 'source',
-  repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
-)
+```{r eval=FALSE}
+install.packages(c('servr', 'knitr'), repos = 'http://cran.rstudio.com')
 ```
 
 Of course, you have to install [Jekyll](http://jekyllrb.com) as well. For Windows users, you have to make sure `jekyll` can be found from your environment variable `PATH`, i.e., R can call it via `system('jekyll')`. This is normally not an issue for Linux or Mac OS X users (`gem install jekyll` is enough).

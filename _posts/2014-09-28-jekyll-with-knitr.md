@@ -18,15 +18,11 @@ As a result, all you need to do is write your blog posts (R Markdown documents),
 
 ## Prerequisites
 
-You must have installed the packages **servr** (>= 0.1.12) and **knitr** (>= 1.8). If you do not see them on CRAN, you may temporarily install from GitHub:
+You must have installed the packages **servr** (>= 0.2) and **knitr** (>= 1.8).
 
 
 {% highlight r %}
-install.packages(
-  c('servr', 'knitr'),
-  type = 'source',
-  repos = c('http://yihui.name/xran', 'http://cran.rstudio.com')
-)
+install.packages(c("servr", "knitr"), repos = "http://cran.rstudio.com")
 {% endhighlight %}
 
 Of course, you have to install [Jekyll](http://jekyllrb.com) as well. For Windows users, you have to make sure `jekyll` can be found from your environment variable `PATH`, i.e., R can call it via `system('jekyll')`. This is normally not an issue for Linux or Mac OS X users (`gem install jekyll` is enough).
@@ -105,7 +101,8 @@ names(formals(servr::jekyll))  # arguments of the jekyll() function
 
 
 {% highlight text %}
-## [1] "dir"    "input"  "output" "script" "serve"  "..."
+## [1] "dir"     "input"   "output"  "script"  "serve"   "command"
+## [7] "..."
 {% endhighlight %}
 
 Just to test inline R expressions[^2] in **knitr**, we know the first element in `x` (created in the code chunk above) is 9.44. You can certainly draw some graphs as well:
@@ -128,7 +125,7 @@ Zero-configuration is required for `servr::jekyll()` to work on your Jekyll webs
 {% highlight r %}
 jekyll(dir = ".", input = c(".", "_source", "_posts"), output = c(".", 
     "_posts", "_posts"), script = c("Makefile", "build.R"), serve = TRUE, 
-    ...)
+    command = "jekyll build", ...)
 {% endhighlight %}
 
 By default, `jekyll()` looks for `.Rmd` files under the root directory, the `_source` directory, and the `_posts` directory of the Jekyll website. For example, if you put your R Markdown posts under `_source`, they will be compiled to the `_posts` directory[^3].
