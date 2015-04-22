@@ -26,8 +26,6 @@ local({
       base.dir = '~/Dropbox/Public/jekyll/',
       base.url = 'http://db.yihui.name/jekyll/'
     )
-  } else {
-
   }
   knitr::opts_knit$set(width = 70)
   knitr::knit(a[1], a[2], quiet = TRUE, encoding = 'UTF-8', envir = .GlobalEnv)
