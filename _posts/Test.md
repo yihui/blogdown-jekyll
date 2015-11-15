@@ -8,7 +8,7 @@ date: "1 November, 2015"
 
 #### (a)
 
-Notice that $(I_n - H)Y = (I_n - H)(X \beta + \epsilon) = (I_n - H)\epsilon$, if $e_i = c_i^T (I_n - H)\epsilon$, then we have $c_i^T = (0, 0, ..., 1, 0, 0)$, that is, only the $i_{th}$ element of $c_i$ is 1, others are 0.
+Notice that \((I_n - H)Y = (I_n - H)(X \beta + \epsilon) = (I_n - H)\epsilon\), if \(e_i = c_i^T (I_n - H)\epsilon\), then we have \(c_i^T = (0, 0, ..., 1, 0, 0)\), that is, only the \(i_{th}\) element of \(c_i\) is 1, others are 0.
 
 #### (b)
 
