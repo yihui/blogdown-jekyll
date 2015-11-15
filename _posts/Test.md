@@ -4,6 +4,15 @@ author: "TZ"
 date: "1 November, 2015"
 ---
 
+<head>
+...
+    <script type="text/javascript"
+            src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+...
+</head>
+
+
 ### 3. p270 Problem 3 (Bonus, not required)
 
 #### (a)
