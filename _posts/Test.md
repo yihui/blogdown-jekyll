@@ -13,6 +13,11 @@ date: "1 November, 2015"
 
 Notice that \((I_n - H)Y = (I_n - H)(X \beta + \epsilon) = (I_n - H)\epsilon\), if \(e_i = c_i^T (I_n - H)\epsilon\), then we have \(c_i^T = (0, 0, ..., 1, 0, 0)\), that is, only the \(i_{th}\) element of \(c_i\) is 1, others are 0.
 
+```mathjax
+\((I_n - H)Y = (I_n - H)(X \beta + \epsilon) = (I_n - H)\epsilon\)
+```
+
+
 #### (b)
 
 $$(n - p)^{-1}r_i^2 = \frac{(n - p)^{-1}e_i^2}{S^2 (1 - h_i)} = \frac{(c_i^T (I_n - H)\epsilon)^2}{\epsilon^T (I_n - H) \epsilon (1 - h_i)}$$
