@@ -18,13 +18,13 @@ local({
   )
   # set where you want to host the figures (I store them in my Dropbox Public
   # folder, and you might prefer putting them in GIT)
-  if (Sys.getenv('USER') == 'yihui') {
+  if (Sys.getenv('USER') == 'teng') {
     # these settings are only for myself, and they will not apply to you, but
     # you may want to adapt them to your own website
     knitr::opts_chunk$set(fig.path = sprintf('%s/', gsub('^.+/', '', d)))
     knitr::opts_knit$set(
-      base.dir = '~/Dropbox/Public/jekyll/',
-      base.url = 'http://db.yihui.name/jekyll/'
+      base.dir = '/figures'
+      # base.url = 'http://db.yihui.name/jekyll/'
     )
   }
   knitr::opts_knit$set(width = 70)
