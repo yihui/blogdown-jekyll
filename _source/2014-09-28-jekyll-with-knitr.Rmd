@@ -56,7 +56,7 @@ plot(cars, pch = 19, col = 'red')  # a scatterplot
 
 Zero-configuration is required for `servr::jekyll()` to work on your Jekyll website. However, there is always demand for more control over some options, which can be defined in a custom build script. Here are the arguments of `servr::jekyll()`:
 
-```{r code=formatR::usage(jekyll), eval=FALSE}
+```{r code=formatR::usage(servr::jekyll), eval=FALSE}
 ```
 
 By default, `jekyll()` looks for `.Rmd` files under the root directory, the `_source` directory, and the `_posts` directory of the Jekyll website. For example, if you put your R Markdown posts under `_source`, they will be compiled to the `_posts` directory[^3].
