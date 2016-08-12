@@ -19,7 +19,7 @@ Their nascent business venture has become such a hit that industry powerhouse Ai
 
 Using data obtained from Priceonomics, I've identified the median price of tree fort rentals for the top 100 cities with the most units on the market. Indianapolis IN, Malibu CA, and Park City UT are the most expensive cities in the US to rent a tree fort by median pricing, something AirBnb hopes to use to its own advantage by provding lower cost classical home alternatives.
 
-```{r, fig.width=10,message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.align='center', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 ##Load Dependencies
 library(pipeR)
 library(dplyr)
@@ -58,7 +58,7 @@ formattable(df3, list(
 
 Basic listed prices, however, may not reflect **actual** rental costs because not all advertised listings are actually rented out. One way to identify median rental prices for listings that have actually been rented is to subset the data to include only those listings with reviews. The working assumption here is that listings with no reviews may never have actually been rented. For listings with at least one review, Carmel CA, Malibu CA, and Incline Village NV are the most expensive by median rental price.
 
-```{r, fig.width=10,message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 
 #Read in data and aggregate # of units by city and subset to top 100
 df1.b <- url %>%
@@ -95,7 +95,7 @@ formattable(df3.b, list(
 
 Let's see if these rental prices cluster by location across the lower 48 states. Using a function I wrote based on Microsoft's Bing's API, I've managed to batch geocode the locations provided in the TreefortBnb data file.
 
-```{r, include=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.align='center', include=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 
 #Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API
 geocode <- function( x, verbose=FALSE, service="google", returntype="coordinates", ... ) {
