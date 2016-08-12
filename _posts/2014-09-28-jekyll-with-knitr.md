@@ -832,7 +832,7 @@ ggplot() +
          plot.background=element_blank())
 {% endhighlight %}
 
-<img src="/blog/figure/source/2014-09-28-jekyll-with-knitr/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto;" />
+<img src="/blog/figure/source/2014-09-28-jekyll-with-knitr/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" style="display: block; margin: auto 0 auto auto;" />
 
 As a final exercise, let's compare median AirBnb prices to median TreefortBnb prices. To accomplish that, I've scraped data from Priceonomics's online AirBnb to hotel comparison table. Unfortunately, the data on AirBnb rental prices is not as exhaustive as the data for TreefortBnb (less populated locations are missing for AirBnb), thus, I've restricted my analysis to the top 25 most rented locations for TreefortBnb in an effort to increase the overlap between the two samples. Data on AirBnb  rental prices for cities on the TreeforBnb list but not on Priceonomics's list of AirBnb prices I've imputed using data drawn from current averages for each location as shown on AirBnb's own website (I used this method for 5 cities: Brooklyn, Queens, Kissimmee, Miami Beach, and Santa Monica).
 
@@ -877,10 +877,11 @@ data4$PriceMedian <- as.numeric(data4$PriceMedian)
 data4$AirPrice <- as.numeric(data4$AirPrice)
 
 # Generate first difference
-data4$first_diff <- data4$PriceMedian - data4$AirPrice  #Negative value mean AirBnb more expensive - positive means TreefortBnb is more expensive
+data4$first_diff <- data4$PriceMedian - data4$AirPrice  #Negative value 
+# mean AirBnb more expensive - positive means TreefortBnb is more
+# expensive
 
-# Create variable distinguishing negative from positive values of first
-# difference
+# Create variable distinguishing neg from pos values of 1st difference
 data4$abs_first_diff <- abs(data4$first_diff)
 data4$Air_pricier <- ifelse(data4$first_diff < 0, 0, 1)
 data4$Air_pricier <- as.factor(data4$Air_pricier)
