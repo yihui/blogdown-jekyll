@@ -19,7 +19,7 @@ Their nascent business venture has become such a hit that industry powerhouse Ai
 
 Using data obtained from Priceonomics, I've identified the median price of tree fort rentals for the top 100 cities with the most units on the market. Indianapolis IN, Malibu CA, and Park City UT are the most expensive cities in the US to rent a tree fort by median pricing, something AirBnb hopes to use to its own advantage by provding lower cost classical home alternatives.
 
-```{r, fig.align='center', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 ##Load Dependencies
 library(pipeR)
 library(dplyr)
@@ -58,7 +58,7 @@ formattable(df3, list(
 
 Basic listed prices, however, may not reflect **actual** rental costs because not all advertised listings are actually rented out. One way to identify median rental prices for listings that have actually been rented is to subset the data to include only those listings with reviews. The working assumption here is that listings with no reviews may never have actually been rented. For listings with at least one review, Carmel CA, Malibu CA, and Incline Village NV are the most expensive by median rental price.
 
-```{r, fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.width=10, fig.align='right', message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 
 #Read in data and aggregate # of units by city and subset to top 100
 df1.b <- url %>%
@@ -176,7 +176,7 @@ geocodeVect <- Vectorize(geocode, vectorize.args="x")
 
 ```
   
-```{r, fig.width=10, fig.align='center', message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+```{r, fig.width=10, fig.align='right', message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 #Load Dependencies
 library(ggplot2)
 library(cowplot)
@@ -239,8 +239,9 @@ appData <- fromJSON("http://priceonomics.com/static/js/hotels/all_data.json")
 
 #replicate table
 data2 <- data.frame(City = names(appData), 
-                   Price = sapply(appData, function(x) x$air$apt$p),
-                   stringsAsFactors = FALSE)
+                    Price = sapply(appData, function(x) x$air$apt$p),
+                    stringsAsFactors = FALSE)
+
 #Arrange data
 setDT(data2)
 data2<-data2[order(Price, decreasing = TRUE)]
@@ -266,16 +267,19 @@ data4$PriceMedian<-as.numeric(data4$PriceMedian)
 data4$AirPrice<-as.numeric(data4$AirPrice)
 
 #Generate first difference
-data4$first_diff<-data4$PriceMedian-data4$AirPrice #Negative value mean AirBnb more expensive - positive means TreefortBnb is more expensive
+data4$first_diff<-data4$PriceMedian-data4$AirPrice #Negative value 
+#mean AirBnb more expensive - positive means TreefortBnb is more 
+#expensive
 
-#Create variable distinguishing negative from positive values of first difference
+#Create variable distinguishing neg from pos values of 1st difference
 data4$abs_first_diff<-abs(data4$first_diff)
 data4$Air_pricier<-ifelse(data4$first_diff<0,0,1)
 data4$Air_pricier<-as.factor(data4$Air_pricier)
 
 #Plot
 library(cowplot) #theme
-a <- ifelse(data4$first_diff < 1, ifelse(data4$Air_pricier!=0,"red","darkgrey"), "blue")
+a <- ifelse(data4$first_diff < 1, 
+            ifelse(data4$Air_pricier!=0,"red","darkgrey"), "blue")
 ggplot(data4, aes(x=Location, y=first_diff)) + 
   geom_bar(stat = "identity", aes(fill=Air_pricier)) +
   ylab("First Difference") +
