@@ -793,9 +793,11 @@ library(ggplot2)
 library(cowplot)
 
 #Batch geocode
-options(BingMapsKey="AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
+options(BingMapsKey=
+  "AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
 df3$Location<-paste(df3$City, df3$State, sep = ", ")
-df30<-t(geocodeVect(df3$Location, service="bing", returntype="coordinates"))
+df30<-t(geocodeVect(df3$Location, service="bing", 
+  returntype="coordinates"))
 df10<-as.data.frame(df30)
 colnames(df10)<-c("lat","lon")
 df3<-cbind(df3, df10)
@@ -850,8 +852,9 @@ library(data.table)
 appData <- fromJSON("http://priceonomics.com/static/js/hotels/all_data.json")
 
 # replicate table
-data2 <- data.frame(City = names(appData), Price = sapply(appData, function(x) x$air$apt$p), 
-    stringsAsFactors = FALSE)
+data2 <- data.frame(City = names(appData), 
+  Price = sapply(appData, function(x) x$air$apt$p), 
+  stringsAsFactors = FALSE)
 
 # Arrange data
 setDT(data2)
