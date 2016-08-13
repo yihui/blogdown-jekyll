@@ -892,11 +892,14 @@ library(cowplot)  #theme
 a <- ifelse(data4$first_diff < 1, ifelse(data4$Air_pricier != 0, "red", 
     "darkgrey"), "blue")
 
-ggplot(data4, aes(x = Location, y = first_diff)) + geom_bar(stat = "identity", 
-    aes(fill = Air_pricier)) + ylab("First Difference") + xlab("") + theme(axis.text.x = element_text(angle = 35, 
-    hjust = 1)) + theme(axis.text.x = element_text(colour = a, size = 10)) + 
-    scale_fill_manual(values = c("darkgrey", "darkblue")) + theme(legend.position = "none", 
-    panel.background = element_blank())
+ggplot(data4, aes(x = Location, y = first_diff)) + 
+    geom_bar(stat = "identity", aes(fill = Air_pricier)) + 
+    ylab("First Difference") + xlab("") + 
+    theme(axis.text.x = element_text(angle = 35, hjust = 1)) + 
+    theme(axis.text.x = element_text(colour = a, size = 10)) + 
+    scale_fill_manual(values = c("darkgrey", "darkblue")) + 
+    theme(legend.position = "none",panel.background = element_blank())
+    
 {% endhighlight %}
 
 <img src="/blog/figure/source/2016-08-12-treefortbnb/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
