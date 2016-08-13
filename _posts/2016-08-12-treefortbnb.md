@@ -854,7 +854,7 @@ appData <- fromJSON("http://priceonomics.com/static/js/hotels/all_data.json")
 # replicate table
 data2 <- data.frame(City = names(appData), 
   Price = sapply(appData, function(x) x$air$apt$p), 
-  stringsAsFactors = FALSE)
+  stringsAsFactors = FALSE) #Create data
 
 # Arrange data
 setDT(data2)
