@@ -281,9 +281,10 @@ data4$Air_pricier<-as.factor(data4$Air_pricier)
 library(cowplot) #theme
 a <- ifelse(data4$first_diff < 1, 
             ifelse(data4$Air_pricier!=0,"red","darkgrey"), "blue")
+
 ggplot(data4, aes(x=Location, y=first_diff)) + 
   geom_bar(stat = "identity", aes(fill=Air_pricier)) +
-  ylab("First Difference") +
+  ylab("First Difference") + 
   xlab("") +
   theme(axis.text.x = element_text(angle = 35, hjust = 1)) +
   theme(axis.text.x=element_text(colour=a, size=10)) +
