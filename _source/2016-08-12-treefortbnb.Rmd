@@ -1,12 +1,10 @@
 ---
 layout:  post
 title: "The Priceonomics Data Puzzle: TreefortBnb"
-date: "2016-08-10 00:00:00""
 comments:  false
 published:  true
 author: "Cyrus M"
 categories: [R]
-date:
 output:
   html_document:
     mathjax:  default
