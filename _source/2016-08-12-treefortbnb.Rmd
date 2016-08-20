@@ -20,7 +20,7 @@ Their nascent business venture has become such a hit that industry powerhouse Ai
 Using data obtained from Priceonomics, I've identified the median price of tree fort rentals for the top 100 cities with the most units on the market. Indianapolis IN, Malibu CA, and Park City UT are the most expensive cities in the US to rent a tree fort by median pricing, something AirBnb hopes to use to its own advantage by provding lower cost classical home alternatives.
 
 ```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
-##Load Dependencies
+##Load dependencies
 library(pipeR)
 library(dplyr)
 library(formattable)
@@ -97,7 +97,7 @@ Let's see if these rental prices cluster by location across the lower 48 states.
 
 ```{r, fig.align='center', include=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
 
-#Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API
+#Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API. It's also much faster.
 geocode <- function( x, verbose=FALSE, service="google", returntype="coordinates", ... ) {
   UseMethod("geocode",x)
 }
@@ -181,7 +181,7 @@ geocodeVect <- Vectorize(geocode, vectorize.args="x")
 library(ggplot2)
 library(cowplot)
 
-#Batch geocode
+#Batch geocode with Bing
 options(BingMapsKey="AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
 df3$Location<-paste(df3$City, df3$State, sep = ", ")
 df30<-t(geocodeVect(df3$Location, service="bing", returntype="coordinates"))

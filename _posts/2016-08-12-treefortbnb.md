@@ -21,7 +21,7 @@ Using data obtained from Priceonomics, I've identified the median price of tree 
 
 
 {% highlight r %}
-##Load Dependencies
+##Load dependencies
 library(pipeR)
 library(dplyr)
 library(formattable)
@@ -792,12 +792,10 @@ Let's see if these rental prices cluster by location across the lower 48 states.
 library(ggplot2)
 library(cowplot)
 
-#Batch geocode
-options(BingMapsKey=
-  "AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
+#Batch geocode with Bing
+options(BingMapsKey="AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
 df3$Location<-paste(df3$City, df3$State, sep = ", ")
-df30<-t(geocodeVect(df3$Location, service="bing", 
-  returntype="coordinates"))
+df30<-t(geocodeVect(df3$Location, service="bing", returntype="coordinates"))
 df10<-as.data.frame(df30)
 colnames(df10)<-c("lat","lon")
 df3<-cbind(df3, df10)
@@ -852,9 +850,8 @@ library(data.table)
 appData <- fromJSON("http://priceonomics.com/static/js/hotels/all_data.json")
 
 # replicate table
-data2 <- data.frame(City = names(appData), 
-  Price = sapply(appData, function(x) x$air$apt$p), 
-  stringsAsFactors = FALSE) 
+data2 <- data.frame(City = names(appData), Price = sapply(appData, function(x) x$air$apt$p), 
+    stringsAsFactors = FALSE)
 
 # Arrange data
 setDT(data2)
@@ -895,14 +892,11 @@ library(cowplot)  #theme
 a <- ifelse(data4$first_diff < 1, ifelse(data4$Air_pricier != 0, "red", 
     "darkgrey"), "blue")
 
-ggplot(data4, aes(x = Location, y = first_diff)) + 
-    geom_bar(stat = "identity", aes(fill = Air_pricier)) + 
-    ylab("First Difference") + xlab("") + 
-    theme(axis.text.x = element_text(angle = 35, hjust = 1)) + 
-    theme(axis.text.x = element_text(colour = a, size = 10)) + 
-    scale_fill_manual(values = c("darkgrey", "darkblue")) + 
-    theme(legend.position = "none",panel.background = element_blank())
-    
+ggplot(data4, aes(x = Location, y = first_diff)) + geom_bar(stat = "identity", 
+    aes(fill = Air_pricier)) + ylab("First Difference") + xlab("") + theme(axis.text.x = element_text(angle = 35, 
+    hjust = 1)) + theme(axis.text.x = element_text(colour = a, size = 10)) + 
+    scale_fill_manual(values = c("darkgrey", "darkblue")) + theme(legend.position = "none", 
+    panel.background = element_blank())
 {% endhighlight %}
 
 <img src="/blog/figure/source/2016-08-12-treefortbnb/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto;" />
