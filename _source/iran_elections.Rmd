@@ -1,0 +1,710 @@
+---
+layout: post
+title: "What does provincial level GDP tell us about Iranian voting habits?"
+comments:  false
+published:  true
+author: "Cyrus Mohammadian"
+categories: [R]
+output:
+  html_document:
+    mathjax:  default
+    fig_caption:  true
+---
+
+The recent parliamentary elections in Iran were a big win for the reformist camp. They not only managed to secure a (slim) majority in the Iranian Majles, they were also successful in adding significant numbers of reformist sympathizers to Iran's Guardian Council -the organizational body tasked with selecting the next Supreme Leader to succeed Ayatollah Khamenei. A cursory examination of the results suggest that reformists performed particularly well in urban districts throughout the country and in Tehran in particular. One particular narrative that has emerged is that the upper class in Iran tend to vote reformist, while the working class poor gravitate towards the principalist camp.[^1] I bring this narrative under closer scrutiny using publicaly available data on the recent presidential and legislative elections. 
+
+[^1]: See https://www.jacobinmag.com/2016/05/iran-elections-rouhani-reformists-nuclear-deal/ for an example.
+
+Before getting into the data, I'll provide some background on the mechanics of Iranian elections and the current political climate in the country. Then I'll go through the workflow of my analysis, which begins with scraping data from the web, cleaning it, graphing it, and then plotting a few correlations that examine the effect of provincial level economic well being on Iranian voting habits.
+
+##Presidential and Legislative Elections in Iran
+
+Iran follows a two-round mixed-member district electoral voting system for its 290 member legislative body, which means 1) voters have the opporunity to elect one or more representatives per constituency and 2) leading candidates must secure at least 30% of the vote share in order to avoid a run-off against their nearest opponent. The numbers of seats is roughly allocated according to district population size. Districts size maxes out at 30 seats in Tehran, while the next largest is Tabriz with 6 and the the modal district size is 1. Of the 290 seats, 5 seats are reserved for officialy recognized religious minorities -one seat for Zoroastrians, one seat for Jews, two seats for Armenian Christians (North and South), and one seat for Assyrian and Chaldean Christians. 
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotrix)
+library(ggplot2)
+
+election<-function (seats, result, formula,
+ colours = sample(rainbow(length(counts)))) {
+ 
+ result <- model.frame(formula, result)
+ counts <- result[, 2]
+ stopifnot(sum(counts) == nrow(seats))
+ seats$party <- factor(rep(result[, 1], counts))
+ seats$colour <- colours[as.numeric(seats$party)]
+ seats
+}
+
+colour<-c("lightgreen","green","darkgreen","yellow","purple","darkgrey")
+party<-c("Tehran","Tabriz","Isfahan", "Mashad","Minorities","Rest")
+members<-c(30,6,5,5,5,239)
+data<-data.frame(colour, party, members)
+data<-mutate_if(data, is.factor, as.character)
+majles = seats(290, 10)
+data.e = election(majles, data, party ~ members)
+
+blank = theme(axis.line=element_blank(),
+              axis.text.x=element_blank(),
+              axis.text.y=element_blank(),
+              axis.ticks=element_blank(),
+              axis.title.x=element_blank(),
+              axis.title.y=element_blank(),
+              panel.background=element_blank(),
+              panel.border=element_blank(),
+              panel.grid.major=element_blank(),
+              panel.grid.minor=element_blank(),
+              plot.background=element_blank(),
+              legend.title=element_blank())
+
+ggplot(data.e, aes(x=x,y=y,col=party)) +
+  geom_point(size=6) + coord_fixed() + blank +
+  scale_color_manual(breaks = c("Rest","Tehran","Tabriz","Isfahan","Mashad","Minorities"),labels=c("Rest","Minorities","Isfahan", "Mashad","Tabriz","Tehran"),
+                     values=c("red","green","yellow","darkgrey","purple","blue")) +
+  theme(legend.position="bottom") +
+  annotate("text", x = 0.01, y = 0.15, size= 25, label = "290")
+
+```
+
+##A Word About Parties in Iran
+
+Iran does not have parties in the traditional sense of ideologically and strategically coherent political groups. This is in part due to norms that developed in the tumultuous atmosphere in which the Islamic Republic emerged. At the time of the revolution in 1979, the political lanscape was a checkerboard of various opposition groups united only by their will to collapse the Shah's regime. Once the monarchy fell a tentative alliance emerged between the Islamist and Nationalist camps, perhaps best exemplified by the working relationship between Ayatollah Khomeini and Abolhassan Bani Sadr. Just as relations between them soured (tension between the two culminated in Bani Sadr's resignation of the presidency and escape to France), so too did the tentative alliance between Nationalist and Islamist factions. Ultimately, the latter would emerge as triumphet. The harsh break with the Nationalists over the hostage taking crisis (amongst other disagreements), coupled with Saddam's attack on Iran, allowed the Islamist faction to consolidate its power at the ballot box. As a result, although minor ideological factions emerged in the Islamic Republic's nascent Constitutive Assembly, nothing resembling strong rivalrous parties took root. 
+
+In addition to the political climate that was unfavorable to the emergence of a strong party system in Iran, Iran's Supreme Leader, Ayatollah Khomeini, harbored some [distrust](http://www.bashgah.net/fa/content/show/50239) towards party systems, suggesting that foreign powers may use them as a means to divide and conquer. As result, norms against strong parties emerged. Tentative party lists and alliances are formed but they rarely maintain strategic coherence in a single election let alone consistency across multiple election cycles. 
+
+Nonetheless, in the 45 years since the revolution, two nominal factions have emerged -the reformist camp who support increased ties with the West and relaxation of social laws, among other things and the principalist camp who advocate for continued rivalry with Western countries and more stringent controls on social behavior. A small minority of ideological independents also crowd the assembly floor. 
+
+In the most recent legislative elections in 2016, the reformist camp were lagely represented by two allied "lists" (other minor moderate groups and independents allied with each list as well); The Pervasive Coalition of Reformists: The Second Step (ائتلاف فراگیر اصلاطلبان: گام دوم), otherwise known as the "list of hope" (لیست امید), lead by Mohammad Reza Aref and the Front for the National Voice (جبهه صدای ملت), led by Ali Motahari. The Principalist faction is represented by only one coalition this election cycle - the Principlists Grand Coalition (ائتلاف بزرگ اصولگرایان), led by Gholam Ali Haddad-Adel. In the most recent presidential elections in 2013, Rouhani ran as a reformer while he faced a slate of conservatives and conservative minded independents. In the next section, I introduce election and recent socioeconomic data on Iran.
+
+##The Data
+
+Data on the 2016 parliamentary elections are scraped from Wikipedia's persian language entry for that subject matter, while the data on the 2013 presidential election and socioeconomic data are scraped from the [Iran Data Portal](http://irandataportal.syr.edu) website hosted at Syracuse University.
+
+The diagram below shows the distribution of Majles seats for each faction following the 2016 elections. Reformists and reformist minded independents won 150 of the 290 seats, Principalists and conservative independents secured 94 seats, and independents managed to attain 5 seats.
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+library(dplyr)
+library(plotrix)
+library(ggplot2)
+
+election<-function (seats, result, formula,
+ colours = sample(rainbow(length(counts)))) {
+ 
+ result <- model.frame(formula, result)
+ counts <- result[, 2]
+ stopifnot(sum(counts) == nrow(seats))
+ seats$party <- factor(rep(result[, 1], counts))
+ seats$colour <- colours[as.numeric(seats$party)]
+ seats
+}
+
+set.seed(1)
+colour<-c("lightgreen","green","darkgreen","darkgrey")
+party<-c("Reformists","Independents","Principalist", "Minorities")
+members<-c(150,41,94, 5)
+data<-data.frame(colour, party, members)
+data<-mutate_if(data, is.factor, as.character)
+majles = seats(290, 10)
+data.e = election(majles, data, party ~ members)
+
+
+blank = theme(axis.line=element_blank(),
+              axis.text.x=element_blank(),
+              axis.text.y=element_blank(),
+              axis.ticks=element_blank(),
+              axis.title.x=element_blank(),
+              axis.title.y=element_blank(),
+              panel.background=element_blank(),
+              panel.border=element_blank(),
+              panel.grid.major=element_blank(),
+              panel.grid.minor=element_blank(),
+              plot.background=element_blank(),
+              legend.title=element_blank())
+
+ggplot(data.e, aes(x=x,y=y,col=party)) +
+  geom_point(size=6) + coord_fixed() + blank +
+  scale_color_manual(breaks = c("Reformists","Independents","Principalist","Minorities"), labels=c("Reformists","Independents","Principalists","Minorities"),
+                     values=c("yellow","darkgrey","red","blue")) +
+  theme(legend.position="bottom") +
+  annotate("text", x = 0.01, y = 0.15, size= 25, label = "290")
+
+```
+
+For the analysis below, I aggregated the legislative election results across Iran's 31 provinces. Because the Islamic Republic uses a multi-member district voting system, each constituency has the opporunity to elect one or more candidates. Thus, to obtain faction vote shares in each province for the most recent legislative election, I have simply divided the number of seats won by each faction in each province by the total number of seats in each province. For example, the province of Zanjan has four voting districts. Of these four, three of them are single-member districts and one has two seats, for a total of five seats for the entire province. Of these five seats, two were won by reformist, two were won by independents, and one was won by a principalist, which results in 40% vote share for reformists and independents and 
+
+
+I've also acquired provincial level data on average annual unemployment since 2009, GDP/capita (2013), GDP growth rate (from 2011-2013), Gini index (2013), and population data (2013). The following table shows averages for each of those variables: 
+
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Load dependencies
+library(rvest)
+library(dplyr)
+library(pipeR)
+library(stringr)
+library(translateR)
+library(XML)
+library(gdata)
+library(reshape2)
+library(gdata)
+library(reshape2)
+library(dplyr)
+library(readr)
+library(rgdal)
+library(maptools)
+library(ggplot2)
+library(plotly)
+
+#Pass Plotly username and password to environment
+Sys.setenv("plotly_username"="cmohamma")
+Sys.setenv("plotly_api_key"="udr1tkmg4f")
+
+#Scrape table from Wikipedia
+url <- "https://fa.wikipedia.org/wiki/فهرست_نمایندگان_دوره_دهم_مجلس_شورای_اسلامی"
+
+ir.election2016 <- url %>%
+  read_html() %>%
+  html_nodes(xpath='//*[@id="mw-content-text"]/table') %>%
+  html_table(fill = TRUE)
+ir.election2016<-ir.election2016[[2]]
+
+#Translate column names into English
+colnames(ir.election2016)<-c("name", "district","province","coalition","nothing")
+ir.election2016$nothing<-NULL
+
+#Get rid of numbers of special characters using regex
+ir.election2016$coalition<-str_replace_all(ir.election2016$coalition, "[\\]۱۲۳۴۴۵۶۷۸۹۰\\[]", "")
+ir.election2016$coalition[ir.election2016$coalition==""]<-NA
+
+#Translate all data but politician names into English
+ir.election2016[ir.election2016=="لرستان"]<-"Lorestan"
+ir.election2016$coalition.eng <- translate(content.vec = ir.election2016$coalition,
+                                           microsoft.client.id = "thelakerswon",
+                                           microsoft.client.secret =
+                                             "GYIGd9nDwphSSTeGc+VVeDwn1RRGi86o1p4No1effYs=",
+                                           source.lang =  "fa" ,
+                                           target.lang =  "en" )
+ir.election2016$province.eng <- translate(content.vec = ir.election2016$province,
+                                          microsoft.client.id = "thelakerswon",
+                                          microsoft.client.secret =
+                                            "GYIGd9nDwphSSTeGc+VVeDwn1RRGi86o1p4No1effYs=",
+                                          source.lang =  "fa" ,
+                                          target.lang =  "en" )
+
+#Clean province names and remove data for ethnic minorities
+ir.election2016$province.eng[ir.election2016$province.eng=="Isfahan, Iran"]<-"Isfahan"
+ir.election2016$province.eng[ir.election2016$province.eng=="Khuzestan province"]<-"Khuzestan"
+ir.election2016$province.eng[ir.election2016$province.eng=="Semnan, Iran"]<-"Semnan"
+ir.election2016$province.eng[ir.election2016$province.eng=="Gillan"]<-"Gilan"
+ir.election2016$province.eng[ir.election2016$province.eng=="Bushehr port"]<-"Bushehr"
+ir.election2016$province.eng[ir.election2016$province.eng=="Fars."]<-"Fars"
+ir.election2016$province.eng[ir.election2016$province.eng=="Central"]<-"Markazi"
+ir.election2016$province.eng[ir.election2016$province.eng=="Chaharmahal and Bakhtiari"]<-"Chahar Mahal and Bakhtiari"
+ir.election2016$province.eng[ir.election2016$province.eng=="Ardabil"]<-"Ardebil"
+ir.election2016$province.eng[ir.election2016$province.eng=="West Azarbaijan"]<-"West Azerbaijan"
+ir.election2016$province.eng[ir.election2016$province.eng=="Kohgiluyeh and Boyer-Ahmad"]<-"Kohgiluyeh and Buyer Ahmad"
+
+ir.election2016$coalition.eng[ir.election2016$coalition.eng=="NA"]<-NA
+ir.election2016 <- ir.election2016[-grep("Iran", ir.election2016$province.eng, perl=TRUE), ]
+
+#Convert coalitions to ideology
+ir.election2016$ideology<-ir.election2016$coalition.eng
+ir.election2016$ideology[ir.election2016$ideology=="NA"]<-NA
+ir.election2016$ideology[ir.election2016$ideology=="Independent"]<-"independent"
+ir.election2016$ideology[ir.election2016$ideology=="The great coalition of conservatives _ the second stage of"]<-"reformist"
+ir.election2016$ideology[ir.election2016$ideology=="The reformist Coalition inclusive"]<-"reformist"
+ir.election2016$ideology[ir.election2016$ideology=="Moderation and development party"]<-"reformist"
+ir.election2016$ideology[ir.election2016$ideology=="The voice of the nation"]<-"reformist"
+ir.election2016$ideology[ir.election2016$ideology=="Probe"]<-"principlist"
+ir.election2016$ideology[ir.election2016$ideology=="The great coalition of conservatives"]<-"principlist"
+ir.election2016$ideology[ir.election2016$ideology=="Revolutionary Trustees"]<-"principlist"
+ir.election2016$ideology[ir.election2016$ideology=="The great coalition of conservatives اصلاحطلبانائتلاف inclusive"]<-"principlist"
+ir.election2016$ideology[ir.election2016$ideology=="The reformist Coalition encompassing the great coalition of conservatives"]<-"principlist"
+
+#Inspect independents and convert to appropriate ideology based on wikipedia bios in persian
+ir.election2016$id<-1:284
+ir.election2016$ideology<-ifelse(ir.election2016$id== "7",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "9",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "11",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "24",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "29",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "30",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "37",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "38",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "54",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "59",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "143",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "148",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "151",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "163",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "173",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "178",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "214",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "217",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "221",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "241",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "242",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "258",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "268",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "57",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "58",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "115",
+                                 "reformist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology<-ifelse(ir.election2016$id== "127",
+                                 "principlist",
+                                 ir.election2016$ideology)
+ir.election2016$ideology[is.na(ir.election2016$ideology)]<-"independent"
+
+#Split data between reformist, principlist, and independents
+reformist.df<-ir.election2016 %>%
+  subset(ideology=="reformist") %>%
+  group_by(province.eng) %>%
+  summarize(reformist=n())
+reformist.df<-as.data.frame(reformist.df)
+principlist.df<-ir.election2016 %>%
+  subset(ideology=="principlist") %>%
+  group_by(province.eng) %>%
+  summarize(principlist=n())
+principlist.df<-as.data.frame(principlist.df)
+independent.df<-ir.election2016 %>%
+  subset(ideology=="independent") %>%
+  group_by(province.eng) %>%
+  summarize(independent=n())
+independent.df<-as.data.frame(independent.df)
+
+#Merge the split dataframes together
+ir.election2016.sum<-merge(reformist.df, principlist.df, by="province.eng", all=TRUE)
+ir.election2016.sum<-merge(ir.election2016.sum, independent.df, by="province.eng",all=TRUE)
+ir.election2016.sum[is.na(ir.election2016.sum)]<-0
+
+#Construct two-ideology vote share and independent vote share for each district
+ir.election2016.sum$reform_rat<-ir.election2016.sum$reformist/(ir.election2016.sum$reformist+ir.election2016.sum$principlist+ir.election2016.sum$independent)
+ir.election2016.sum$princ_rat<-ir.election2016.sum$principlist/(ir.election2016.sum$reformist+ir.election2016.sum$principlist+ir.election2016.sum$independent)
+ir.election2016.sum$indep_rat<-ir.election2016.sum$independent/(ir.election2016.sum$reformist+ir.election2016.sum$principlist+ir.election2016.sum$independent)
+
+#Rename province variable
+ir.election2016.sum<-rename(ir.election2016.sum, province=province.eng)
+
+##Presidency 2013
+#Scrape table Iran Data Portal
+url <- "http://irandataportal.syr.edu/election-data"
+ir.pres2013 <- url %>%
+  read_html() %>%
+  html_nodes(xpath='//*[@id="content"]/div[16]/table') %>%
+  html_table(fill = TRUE)
+ir.pres2013<-ir.pres2013[[1]]
+colnames(ir.pres2013)<-c("province","Rouhani","Velayati","Jalili","Ghalibaf","Rezai","Gharazi")
+ir.pres2013<-ir.pres2013[-1,]
+
+#Get rid of unnecessary rows
+ir.pres2013<-ir.pres2013 %>%
+  subset(province!="Votes Per Candidate") %>%
+  subset(province!="Total Votes")
+
+#remove odd characters and convert data to numeric
+mystery_char = rawToChar(as.raw(c(0xc2, 0xa0)))
+to_replace = sprintf('[,%s]', mystery_char)
+clean_numbers = function (x) as.numeric(str_replace_all(x, to_replace, ''))
+ir.pres2013 = ir.pres2013 %>% mutate_each(funs(clean_numbers), -province)
+ir.pres2013$total<-sum(ir.pres2013[,2:7])
+ir.pres2013$total<-rowSums(ir.pres2013[,2:7])
+ir.pres2013$rouhani_rat<-ir.pres2013$Rouhani/ir.pres2013$total
+
+#Align province names and merge
+ir.pres2013$province[ir.pres2013$province=="Hamadan"]<-"Hamedan"
+ir.pres2013$province[ir.pres2013$province=="Esfahan"]<-"Isfahan"
+ir.pres2013$province[ir.pres2013$province=="North Khorasan "]<-"North Khorasan"
+ir.pres2013$province[ir.pres2013$province=="South Khorasan "]<-"South Khorasan"
+ir.pres2013$province[ir.pres2013$province=="Razavi Khorasan "]<-"Khorasan Razavi"
+ir.pres2013$province[ir.pres2013$province=="Ardabil"]<-"Ardebil"
+ir.pres2013$province[ir.pres2013$province=="Razavi Khorasan"]<-"Khorasan Razavi"
+iran.elect<-merge(ir.pres2013,ir.election2016.sum, by="province")
+
+###Socioeconomic data
+##Population
+
+url<-"http://irandataportal.syr.edu/wp-content/uploads/population-province-and-gender-census-2011.xlsx"
+pop<-read.xls(url)
+pop<-subset(pop, Province!="Total Country")
+rownames(pop)<-1:31
+pop$province<-pop$Province
+pop$Province<-NULL
+pop<-select(pop, province, Male, Female, Total)
+pop$province<-as.character(pop$province)
+pop$province[pop$province=="Hamadan"]<-"Hamedan"
+pop$province[pop$province=="Esfahan"]<-"Isfahan"
+pop$province[pop$province=="North Khorasan "]<-"North Khorasan"
+pop$province[pop$province=="South Khorasan "]<-"South Khorasan"
+pop$province[pop$province=="Razavi Khorasan "]<-"Khorasan Razavi"
+
+iran.elect$province[iran.elect$province=="Ardebil"]<-"Ardabil"
+iran.df<-merge(pop, iran.elect, by="province", all=TRUE)
+
+##Gini
+url<-"http://irandataportal.syr.edu/wp-content/uploads/GINI-by-Province-1.xlsx"
+iran.df <- url %>%
+  read.xls() %>%
+  subset(X!="Iran (total)") %>%
+  rename(province=X) %>%
+  mutate(gini = rowSums(.[2:3])/2) %>%
+  select(province, gini) %>%
+  mutate(province = ifelse(province=="Hamadan", "Hamedan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Esfahan", "Isfahan", as.character(province))) %>%
+  mutate(province = ifelse(province=="North Khorasan ", "North Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="South Khorasan ", "South Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Razavi Khorasan ", "Khorasan Razavi", as.character(province))) %>%
+  merge(iran.df, by="province", all=TRUE) %>%
+  rename(population=Total, female_pop=Female, male_pop=Male)
+
+##GDP/capita growth rate
+url<-"http://irandataportal.syr.edu/wp-content/uploads/GDP-per-capita-without-oil-2000to2013-1.xlsx"
+growth <- function(x)x/lag(x)-1 #GDP growth between 2012 and 2013
+gdpgrow <- url %>%
+  read.xls() %>%
+  filter(Year..Gregorian.calendar.=="2012-2013" |
+           Year..Gregorian.calendar.=="2013-2014") %>%
+  select(3,5:35) %>%
+  melt(id="Year..Iranian.calendar.") %>%
+  rename(year=Year..Iranian.calendar.) %>%
+  rename(province=variable) %>%
+  rename(gdp.grow=value) %>%
+  mutate(province = ifelse(province=="Hamadan", "Hamedan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Esfahan", "Isfahan", as.character(province))) %>%
+  mutate(province = ifelse(province=="South.Khorasan.", "South Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="North.Khorasan.", "North Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Razavi.Khorasan.", "Khorasan Razavi", as.character(province))) %>%
+  group_by(province) %>%
+  mutate_each(funs(growth), gdp.grow) %>% #GDP growth function from above
+  filter(year==1392) %>%
+  select(2,3)
+gdpgrow$province<-str_replace_all(gdpgrow$province, "[.]"," ")
+final<-merge(gdpgrow, iran.df, by="province", all=TRUE)
+
+##GDP/capita from 2013
+url<-"http://irandataportal.syr.edu/wp-content/uploads/GDP-per-capita-without-oil-2000to2013-1.xlsx"
+gdpcap <- url %>%
+  read.xls() %>%
+  filter(Year..Gregorian.calendar.=="2013-2014") %>%
+  select(3,5:35) %>%
+  melt(id="Year..Iranian.calendar.") %>%
+  rename(year=Year..Iranian.calendar.) %>%
+  rename(province=variable) %>%
+  rename(gdp.cap=value) %>%
+  mutate(province = ifelse(province=="Hamadan", "Hamedan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Esfahan", "Isfahan", as.character(province))) %>%
+  mutate(province = ifelse(province=="South.Khorasan.", "South Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="North.Khorasan.", "North Khorasan", as.character(province))) %>%
+  mutate(province = ifelse(province=="Razavi.Khorasan.", "Khorasan Razavi", as.character(province))) %>%
+  select(2,3)
+gdpcap$province<-str_replace_all(gdpcap$province, "[.]"," ")
+final<-merge(gdpcap, final, by="province", all=TRUE)
+
+##Unemployment
+url<-"http://irandataportal.syr.edu/wp-content/uploads/3.-economic-participation-and-unemployment-rates-for-populationa-aged-10-and-overa-by-ostan-province-1380-1384-2001-2005.xlsx"
+unemp <- url %>%
+  read.xls(fileEncoding="latin1") #must add this option to get it to import
+
+#Convert factors to characters
+unemp[] <- lapply(unemp, as.character)
+unemp<-unemp[c(3,5:34),]
+unemp$X<-as.character(unemp$X)
+unemp[1,1]<-"province"
+colnames(unemp)<-unemp[1,]
+unemp<-unemp[-1,]
+colnames(unemp)<-c("province","a","B","c","d","E","f","g","H","i","j","K","l","m","N","o")
+unemp<-select(unemp,1,3, 6, 9, 12, 15)
+pattern = "\\(2\\)"
+clean_numbers = function (x) as.numeric(str_replace_all(x, pattern, ""))
+unemp<-mutate_each(unemp, funs(clean_numbers), -province)
+unemp$Z<-(rowSums(select(unemp,-1))) #mean unemployment between 2000-2005
+unemp$unemp<-unemp$Z/5
+unemp<-unemp[,c(1,8)]
+b<-c("Alborz"," ") #add data for missing Alborz (wasn't it's own province, based on research 14.9 selected)
+unemp<-rbind(unemp, b)
+unemp[31,2]<-14.9
+unemp$unemp<-as.numeric(unemp$unemp)
+unemp<-arrange(unemp, province)
+unemp.avg<-unemp$unemp
+final<-cbind(final,unemp.avg)
+
+###Create table for means of measurements
+library(formattable)
+
+SummaryTable <- data.frame(
+  Variables=c("Reformist Vote Share 2016","Independent Vote Share 2016","Principalist Vote Share 2016","Rouhani Vote Share 2013","Unemployment Rate","Gini Index","GDP/capita"),
+  Mean=c("51%","16%","34%","53%","12.04%","0.31","105993"),
+  Minimum=c("0%","0%","0%","33%","1.42%","0.25","49962"),
+  Maximum=c("100%","50%","100%","73%","21.04%","0.38","337586"),
+  Tehran=c("94%","0%","6%","49%","12%","0.31","178774")
+)
+
+formattable(SummaryTable, list(
+  Variables= formatter(
+    "span",
+    style=x ~ style(color="black",
+                    font.weight="bold",
+                    background.color = "#00ff00",
+                    border.radius="4px",
+                    display="block",
+                    padding= "0 4px"),
+    Tehran= formatter(
+      "span",
+      style= ~ style(font.weight="bold")
+    )
+  )
+)
+)
+
+```
+
+#Graph elections
+
+Now that I have the data scraped, cleaned, and combined, I can easily create an interactive map displaying not only both elections data but also the socioeconomic data I scraped earlier as well.
+
+Workflow:
+
+* Create function to download shapefiles from online sources
+* Download shapefile and clean data slot
+* Create ggplot2 object (static map)
+* Wrap plotly arround ggplot2 object and map (interactive map)
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+###Maps
+#Function to download and import shapefile
+dlshape=function(shploc, shpfile) {
+  temp=tempfile()
+  download.file(shploc, temp)
+  unzip(temp)
+  shp.data <- sapply(".", function(f) {
+    fp <- file.path(temp, f)
+    return(readOGR(".",shpfile))
+  })
+}
+
+
+iran.sp <- dlshape(shploc="http://biogeo.ucdavis.edu/data/gadm2.8/shp/IRN_adm_shp.zip","IRN_adm1")[[1]]
+
+#Align spelling of provinces
+iran.sp@data<-rename(iran.sp@data, province=NAME_1)
+iran.sp@data$province<-as.character(iran.sp@data$province)
+iran.sp@data$province[iran.sp@data$province=="Hamadan"]<-"Hamedan"
+iran.sp@data$province[iran.sp@data$province=="Esfahan"]<-"Isfahan"
+iran.sp@data$province[iran.sp@data$province=="Razavi Khorasan"]<-"Khorasan Razavi"
+iran.sp@data$province[iran.sp@data$province=="North Khorasan "]<-"North Khorasan"
+iran.sp@data$province[iran.sp@data$province=="South Khorasan "]<-"South Khorasan"
+iran.sp@data$province[iran.sp@data$province=="Chahar Mahall and Bakhtiari"]<-"Chahar Mahal and Bakhtiari"
+iran.sp@data$province[iran.sp@data$province=="Kordestan"]<-"Kurdistan"
+iran.sp@data$province[iran.sp@data$province=="Chahar Mahall and Bakhtiari"]<-"Chahar Mahal and Bakhtiari"
+iran.sp@data$province[iran.sp@data$province=="West Azarbaijan"]<-"West Azerbaijan"
+iran.sp@data$province[iran.sp@data$province=="East Azarbaijan"]<-"East Azerbaijan"
+iran.sp@data$province[iran.sp@data$province=="Ardebil"]<-"Ardabil"
+
+#Apparenltly the shapefile's names do not match up with the coordinate locations -i.e. they're jumbled up
+#So first create a copy of the province column
+iran.sp@data$province2<-iran.sp@data$province
+iran.sp@data$province2[iran.sp@data$province=="Fars"]<-"Isfahan"
+iran.sp@data$province2[iran.sp@data$province=="Gilan"]<-"Fars"
+iran.sp@data$province2[iran.sp@data$province=="Markazi"]<-"Mazandaran"
+iran.sp@data$province2[iran.sp@data$province=="Isfahan"]<-"Ilam"
+iran.sp@data$province2[iran.sp@data$province=="Lorestan"]<-"Markazi"
+iran.sp@data$province2[iran.sp@data$province=="Hormozgan"]<-"Hamedan"
+iran.sp@data$province2[iran.sp@data$province=="Khuzestan"]<-"Kohgiluyeh and Buyer Ahmad"
+iran.sp@data$province2[iran.sp@data$province=="Kohgiluyeh and Buyer Ahmad"]<-"Kurdistan"
+iran.sp@data$province2[iran.sp@data$province=="Khorasan Razavi"]<-"Khuzestan"
+iran.sp@data$province2[iran.sp@data$province=="Mazandaran"]<-"North Khorasan"
+iran.sp@data$province2[iran.sp@data$province=="Hamedan"]<-"Golestan"
+iran.sp@data$province2[iran.sp@data$province=="Golestan"]<-"Gilan"
+iran.sp@data$province2[iran.sp@data$province=="Qom"]<-"Khorasan Razavi"
+iran.sp@data$province2[iran.sp@data$province=="North Khorasan"]<-"Qazvin"
+iran.sp@data$province2[iran.sp@data$province=="Kurdistan"]<-"Lorestan"
+iran.sp@data$province2[iran.sp@data$province=="Ilam"]<-"Hormozgan"
+iran.sp@data$province2[iran.sp@data$province=="Qazvin"]<-"Qom"
+iran.sp@data$province.og<-iran.sp@data$province
+iran.sp@data$province<-iran.sp@data$province2
+iran.sp@data$province2<-NULL
+
+iran.sp@data$ID_1a<-iran.sp@data$ID_1
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="7"]<-"6"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="8"]<-"7"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="19"]<-"20"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="6"]<-"12"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="18"]<-"19"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="11"]<-"10"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="15"]<-"16"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="16"]<-"17"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="24"]<-"15"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="20"]<-"21"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="10"]<-"9"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="9"]<-"8"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="23"]<-"24"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="21"]<-"22"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="17"]<-"18"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="12"]<-"11"
+iran.sp@data$ID_1a[iran.sp@data$ID_1=="22"]<-"23"
+iran.sp@data$ID_1.og<-iran.sp@data$ID_1
+iran.sp@data$ID_1<-iran.sp@data$ID_1a
+iran.sp@data$ID_1a<-NULL
+
+iran.sp@data<-merge(iran.sp@data, final, by="province",all=TRUE)
+iran.sp@data$ID_1<-as.numeric(iran.sp@data$ID_1)
+iran.sp@data<-arrange(iran.sp@data, -desc(ID_1))
+
+##Render data into df format for mapping
+iran_map <- fortify(iran.sp, region="ID_1")
+
+data<-merge(iran_map, iran.sp, region="id", by.x = "id", by.y = "ID_1")
+
+###Plotly
+#Rename variables to appropriate styles for display
+colnames(data)[34]<-"Rouhani Vote Share 2013"
+colnames(data)[40]<-"Independent Vote Share 2016"
+colnames(data)[39]<-"Principalist Vote Share 2016"
+colnames(data)[8]<-"Province"
+colnames(data)[21]<-"GDP/capita"
+colnames(data)[23]<-"Gini Index"
+colnames(data)[41]<-"Unemployment Rate"
+colnames(data)[38]<-"Reformist Vote Share 2016"
+
+#ggplot the map
+p<-ggplot(data, aes(x = long, y = lat, fill = `Reformist Vote Share 2016`, group = group,
+                    label=`Independent Vote Share 2016`,
+                    label2=`Principalist Vote Share 2016`,
+                    label3=`Rouhani Vote Share 2013`,
+                    label4=`Unemployment Rate`,
+                    label5=`Gini Index`,
+                    label6=`GDP/capita`,
+                    label7=Province)) +
+  geom_polygon(color="black", size=0.2) +
+  ggtitle("Reformist Vote Share 2016") +
+  scale_fill_gradient(low = "lightgrey", high = "darkred", name='Vote Share') +xlab("")+ylab("") +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank()) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+#Convert to plotly object
+gg <- plotly_build(p)
+
+#Get rid of hover-over edit toolbar
+gg<-gg %>%
+  config(displayModeBar = FALSE) %>%
+  config(showLink = FALSE)
+
+#Save to plotly account
+plotly_POST(gg, filename = "iran.plotly.100")
+
+```
+
+The map above shows the distribution of reformist vote share by province. The reformist enjoyed greatest support in Yazd, Qazvin, and Tehran, while principalist were most successful in South Khorasan, Markazi, and Kermanshah provinces. In terms of the presidential race, Sistan and Baluchestan, Kurdistan, and Yazd are where the reformist candidate Rouhani enjoyed his best success, while he fared the poorest in Chahar Mahal and Bakhtiar, Khuzestan, and Qom. 
+
+How consistent is the support for reformist backed candidates across the presidential and legislative elections? The bar plot below shows the first difference between the reformist backed candidates vote share in the legislative elections and Rouhani's vote share in 2014. Positive values (blue) indicate an increase in reformist vote share in 2016 relative to Rouhani's vote share in that same province in 2014. Provinces with negative values (red) are those provinces in 2016 where reformist vote share in the Majles elections shrank relative to reformist performance during the presidential elections in 2014.
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+library(cowplot)
+data$f.diff<-data[,38]-data[,34]
+
+plot.df<-unique(select(data, 8, 42))
+
+plot.df$category<-ifelse(as.numeric(plot.df$f.diff)<0,0,1)
+plot.df$category<-as.factor(plot.df$category)
+
+plot.df$Province<-factor(plot.df$Province, 
+                         levels=plot.df[order(plot.df$f.diff), "Province"])
+
+ggplot(data=plot.df, aes(x=Province, y=f.diff))+
+  geom_bar(stat="identity", aes(fill=category)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 2)) +
+  theme(axis.text.x=element_text(colour="black"), 
+        legend.position="none") + 
+  xlab("") + ylab("") +
+  geom_text(aes(label = Province, x = Province, y = f.diff), 
+            position = position_dodge(width = 3), angle = 90, hjust = 0.35) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line.x=element_blank()) +
+  ggtitle("Reformist Vote Share \n Legislative (2016) - Presidential (2014)")
+```
+
+#Economic well-being and the reformist vote at the provincial level
+
+So what does provincial level GDP (excluding oil output) tell us about Iranian voting habits? The conventional wisdom, in regards to divisions in Iranian politics, tells us that voting habits fall along class differences. The data, however, provides a more complex picture. Correlations between reformist vote share and unemployment, income inequality, and GDP growth all hover closer to zero. The correlation, however, between GDP/capita and reformist vote share at the provencial level is about 0.46, which suggests a weak relationship between the two at best. Linear regression analysis predicting vote share that includes each of the aforementioned economic indicators finds a positive and statistically significant, albiet weak, relationship between GDP/capita and reformist vote share only. At best, this analysis identifies a small relationship between economic well-being and Iranian voting habits, however, given the sample size of a single election and the problems associated with aggregating votes at the provincial level (as opposed to presinct level), these conclusions should be taken with a grain of salt. If economic well-being is a poor predictor of Iranian voting behavior, what factors might explain Iranian voter choice in 2016? Factors this analysis has overlooked include incumbency, religiousity, ethnicity, and education.
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+data.df<-iran.sp@data
+
+#Generate maps
+library(gridExtra)
+library(grid)
+
+g1<-ggplot(data=data.df, aes(gdp.cap, reform_rat))+
+  geom_point()+xlab("GDP/capita")+ylab("")
+g2<-ggplot(data=data.df, aes(gdp.grow, reform_rat))+
+  geom_point()+xlab("GDP Growth")+ylab("")
+g3<-ggplot(data=data.df, aes(unemp.avg, reform_rat))+geom_point()+xlab("Unemployment")+ylab("")
+g4<-ggplot(data=data.df, aes(gini, reform_rat))+
+  geom_point() +xlab("Gini Coefficient")+ylab("")
+
+grid.arrange(g1,g2,g3,g4, top = textGrob("Reformist Vote Share", gp=gpar(fontface="bold", fontsize=22)))
+
+```

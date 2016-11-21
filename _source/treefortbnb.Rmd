@@ -1,0 +1,296 @@
+---
+layout: post
+title: "The Priceonomics Data Puzzle: TreefortBnb"
+comments:  false
+published:  true
+author: "Cyrus M"
+categories: [R]
+output:
+  html_document:
+    mathjax:  default
+    fig_caption:  true
+---
+
+## Which Are the Most Expensive Cities in America to Book a Tree Fort?
+
+It's the year 2020 and the sharing-economy is in full gear. Everything from hosting city dinners to ride-sharing the great outdoors is fair game. Capitalizing on their own interests and experience, eight-year-old startup prodigees, Sally Hershfield and Felicia Alvarez, have taken the sharing-economy by storm with their ever-growing TreefortBnB enterprise. 
+
+Their nascent business venture has become such a hit that industry powerhouse AirBnb has not only taken notice but also action. They've identified markets where TreefortBnb has expanded most successfully and it's been rumored that AirBnb aims to undercut their marketshare by providing incentives that push their users to advertise more competitive prices. 
+
+Using data obtained from Priceonomics, I've identified the median price of tree fort rentals for the top 100 cities with the most units on the market. Indianapolis IN, Malibu CA, and Park City UT are the most expensive cities in the US to rent a tree fort by median pricing, something AirBnb hopes to use to its own advantage by provding lower cost classical home alternatives.
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+##Load dependencies
+library(pipeR)
+library(dplyr)
+library(formattable)
+
+##URL to download data
+url<-"https://s3.amazonaws.com/pix-media/Data+for+TreefortBnB+Puzzle.csv"
+
+#Read in data and aggregate # of units by city and subset to top 100
+df1 <- url %>%
+  read.csv(col.names=c("ID","City","State","Price","Reviews")) %>%
+  group_by(State, City) %>%
+  summarize(Unit_Sum=n()) %>% 
+  arrange(desc(Unit_Sum)) %>%
+  head(100) 
+
+#Read in data again and obtain median rental price by city
+df2 <- url %>%
+  read.csv(col.names=c("ID","City","State","Price","Reviews")) %>%
+  group_by(State, City) %>%
+  summarize(Price_Median=median(Price)) %>%
+  arrange(desc(Price_Median)) 
+
+#Merge two data frames
+df3 <-merge(df1, df2, by=c("City", "State"), all.x=TRUE, all.y=FALSE)
+df3<-arrange(df3, desc(Price_Median))
+
+#Rename columns
+colnames(df3)[3]<-"Unit Total"
+colnames(df3)[4]<-"Median Price"
+
+#Produce output table in html
+formattable(df3, list(
+  'Median Price' = color_bar("orange")))
+```
+
+Basic listed prices, however, may not reflect **actual** rental costs because not all advertised listings are actually rented out. One way to identify median rental prices for listings that have actually been rented is to subset the data to include only those listings with reviews. The working assumption here is that listings with no reviews may never have actually been rented. For listings with at least one review, Carmel CA, Malibu CA, and Incline Village NV are the most expensive by median rental price.
+
+```{r, fig.width=10, fig.align='right', message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Read in data and aggregate # of units by city and subset to top 100
+df1.b <- url %>%
+  read.csv(col.names=c("ID","City","State","Price","Reviews")) %>%
+  subset(Reviews > 0) %>% #subset to only include reviewed listings
+  group_by(State, City) %>%
+  summarize(Unit_Sum=n()) %>% 
+  arrange(desc(Unit_Sum)) %>%
+  head(100) 
+
+#Read in data again and obtain median rental price by city
+df2.b <- url %>%
+  read.csv(col.names=c("ID","City","State","Price","Reviews")) %>%
+  subset(Reviews > 0) %>% #subset to only include reviewed listings
+  group_by(State, City) %>%
+  summarize(Price_Median=median(Price)) %>%
+  arrange(desc(Price_Median)) 
+
+#Merge two data frames
+df3.b <-merge(df1.b, df2.b, by=c("City", "State"), all.x=TRUE, all.y=FALSE)
+df3.b<-arrange(df3.b, desc(Price_Median))
+
+#Rename columns
+colnames(df3.b)[3]<-"Unit Total"
+colnames(df3.b)[4]<-"Median Price"
+
+#Produce output table in html
+df3.b<-head(df3.b, 10)
+formattable(df3.b, list(
+  'Median Price' = color_bar("orange")))
+```
+
+## Let's Map it!
+
+Let's see if these rental prices cluster by location across the lower 48 states. Using a function I wrote based on Microsoft's Bing's API, I've managed to batch geocode the locations provided in the TreefortBnb data file.
+
+```{r, fig.align='center', include=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API. It's also much faster.
+geocode <- function( x, verbose=FALSE, service="google", returntype="coordinates", ... ) {
+  UseMethod("geocode",x)
+}
+geocode.default <- function(x,verbose=FALSE, service="google", returntype="coordinates", ...) {
+  if( is.na( x ) | gsub(" *", "", x) == ""  ) return(c(NA,NA))
+  service <- tolower(service)
+  BingMapsKey <- getOption("BingMapsKey")
+  if(service=="bing" && is.null(BingMapsKey) ) stop("To use Bing, you must save your Bing Maps API key (obtain at http://msdn.microsoft.com/en-us/library/ff428642.aspx) using options(BingMapsKey='mykey').\n")
+  construct.geocode.url <- list()
+  construct.geocode.url[["google"]] <- function(address, return.call = "json", sensor = "false") {
+    root <- "http://maps.google.com/maps/api/geocode/"
+    u <- paste(root, return.call, "?address=", address, "&sensor=", sensor, sep = "")
+    return(URLencode(u))  
+  }
+  construct.geocode.url[["bing"]] <- function(address, maxResults=1) {
+    root <- "http://dev.virtualearth.net/REST/v1/Locations"
+    u <- paste0(root, "?query=", address, "&maxResults=",maxResults,"&key=",BingMapsKey)
+    return(URLencode(u))
+  }
+  if(verbose) message(x,appendLF=FALSE)
+  u <- construct.geocode.url[[service]](x)
+  doc <- RCurl::getURL(u)
+  j <- RJSONIO::fromJSON(doc,simplify = FALSE)
+  parse.json <- list()
+  parse.json[["google"]] <- function(j) {
+    if(j$status=="OK") {
+      res <- list()
+      if( "coordinates" %in% returntype ) {
+        lat <- j$results[[1]]$geometry$location$lat
+        lng <- j$results[[1]]$geometry$location$lng
+        res$coordinates <- c(lat, lng)
+      }
+      if( "zip" %in% returntype )  {
+        zp <- j$results[[1]]$address_components[[8]]$short_name
+        if( j$results[[1]]$address_components[[8]]$types[[1]] != "postal_code" )  warning(paste("Not sure these zips are actually zips.  Type:", j$results[[1]]$address_components[[8]]$types[[1]]) )
+        res$zip <- zp
+      }
+      return( res )
+    } else {
+      if(j$status=="OVER_QUERY_LIMIT") warning("Google's geocoding quota appears to have been reached for the day.")
+      return(c(NA,NA))
+    }
+  }
+  parse.json[["bing"]] <- function(j) {
+    if(j$authenticationResultCode != "ValidCredentials") {
+      warning("Your BingMapsKey was not accepted.")
+      return(c(NA,NA))
+    }
+    if(j$statusDescription!="OK") {
+      warning("Something went wrong. Bing Maps API return status code ",j$statusCode," - ", j$statusDescription)
+      return(c(NA,NA))
+    }
+    if(j$resourceSets[[1]]$estimatedTotal==0) {
+      warning("Didn't find any points")
+      return(c(NA,NA))
+    }
+    if(verbose) message(" - Confidence: ", j$resourceSets[[1]]$resources[[1]]$confidence ,appendLF=FALSE)
+    res <- list()
+    if( "coordinates" %in% returntype ) {
+      crds <- unlist(j$resourceSets[[1]]$resources[[1]]$point$coordinates)
+      res$coordinates <- crds
+    }
+    if( "zip" %in% returntype )  {
+      res$zip <- sub( "^.*(\\d{5}-?\\d?\\d?\\d?\\d?).*$", "\\1", j$resourceSets[[1]]$resources[[1]]$address$formattedAddress )
+    }
+    return( res )
+  }
+  res <- parse.json[[service]](j)
+  if(length(returntype)==1) res <- res[[1]]
+  if(verbose) message("\n",appendLF=FALSE)
+  return( res )
+}
+
+#Vectorize function
+geocodeVect <- Vectorize(geocode, vectorize.args="x")
+
+```
+  
+```{r, fig.width=10, fig.align='right', message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+#Load Dependencies
+library(ggplot2)
+library(cowplot)
+
+#Batch geocode with Bing
+options(BingMapsKey="AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
+df3$Location<-paste(df3$City, df3$State, sep = ", ")
+df30<-t(geocodeVect(df3$Location, service="bing", returntype="coordinates"))
+df10<-as.data.frame(df30)
+colnames(df10)<-c("lat","lon")
+df3<-cbind(df3, df10)
+df3<-as.data.frame(df3)
+
+#Subset to only include lower 48
+df3<- df3 %>%
+  subset(State!="HI") %>%
+  subset(State!="AK")
+row.names(df3) <- NULL 
+
+states <- map_data("state")
+states <- states[order(states$order), ]
+
+ggplot() +
+  geom_polygon(data=states, aes(long, lat, group=group),
+               size=0.1,fill="black", color="white", alpha=0.75) +
+  geom_point(data=df3, aes(lon, lat, size= `Median Price`), 
+             color="blue", alpha=0.5) +
+  geom_point(data=df3, shape = 1, 
+             aes(lon, lat, size=`Median Price`), 
+             colour = "white", alpha=0.7) +
+   theme(axis.line=element_blank(),
+         axis.text.x=element_blank(),
+         axis.text.y=element_blank(),
+         axis.ticks=element_blank(),
+         axis.title.x=element_blank(),
+         axis.title.y=element_blank(),
+         legend.position="bottom",
+         panel.background=element_blank(),
+         panel.border=element_blank(),
+         panel.grid.major=element_blank(),
+         panel.grid.minor=element_blank(),
+         plot.background=element_blank())
+
+```
+
+As a final exercise, let's compare median AirBnb prices to median TreefortBnb prices. To accomplish that, I've scraped data from Priceonomics's online AirBnb to hotel comparison table. Unfortunately, the data on AirBnb rental prices is not as exhaustive as the data for TreefortBnb (less populated locations are missing for AirBnb), thus, I've restricted my analysis to the top 25 most rented locations for TreefortBnb in an effort to increase the overlap between the two samples. Data on AirBnb  rental prices for cities on the TreeforBnb list but not on Priceonomics's list of AirBnb prices I've imputed using data drawn from current averages for each location as shown on AirBnb's own website (I used this method for 5 cities: Brooklyn, Queens, Kissimmee, Miami Beach, and Santa Monica).
+
+The graph below shows the first difference between TreefortBnb and AirBnb median rental prices across the 25 busiest TreefortBnb cities across the US. Negative values indicate locations where median AirBnb rental prices are more expensive than their TreefortBnb counterparts. Queens, NY (highlighted in red) is the only location where median prices are equivalent, although, median prices in Washington DC, Boulder, CO, and Denver, CO are very close. 
+
+
+
+```{r, fig.align='center', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE, tidy=TRUE}
+
+#Load dependencies
+library(jsonlite)
+library(data.table)
+
+#Scrape data from site
+appData <- fromJSON("http://priceonomics.com/static/js/hotels/all_data.json")
+
+#replicate table
+data2 <- data.frame(
+  City = names(appData),
+  Price = sapply(appData, function(x) x$air$apt$p),
+                    stringsAsFactors = FALSE)
+
+#Arrange data
+setDT(data2)
+data2<-data2[order(Price, decreasing = TRUE)]
+data2<-as.data.frame(data2)
+colnames(data2)<-c("Location", "AirPrice")
+
+#Subset to only include 25 busiest tree fort markets
+dddd<-df3
+colnames(dddd)[3]<-"UnitTotal"
+data3<-arrange(dddd, desc(UnitTotal))
+data3<-head(data3, 25)
+
+#Imput missing AirBnb values
+data4<-merge(data3, data2, by="Location", all.x=TRUE,all.y=FALSE)
+data4$AirPrice<-as.character(data4$AirPrice)
+data4[6, 8]<-104
+data4[10, 8]<-172
+data4[13, 8]<-158
+data4[20, 8]<-99
+data4[23, 8]<-141
+colnames(data4)[5]<-c("PriceMedian")
+data4$PriceMedian<-as.numeric(data4$PriceMedian)
+data4$AirPrice<-as.numeric(data4$AirPrice)
+
+#Generate first difference
+data4$first_diff<-data4$PriceMedian-data4$AirPrice #Negative value 
+#mean AirBnb more expensive - positive means TreefortBnb is more 
+#expensive
+
+#Create variable distinguishing neg from pos values of 1st difference
+data4$abs_first_diff<-abs(data4$first_diff)
+data4$Air_pricier<-ifelse(data4$first_diff<0,0,1)
+data4$Air_pricier<-as.factor(data4$Air_pricier)
+
+#Plot
+library(cowplot) #theme
+a <- ifelse(data4$first_diff < 1, 
+            ifelse(data4$Air_pricier!=0,"red","darkgrey"), "blue")
+
+ggplot(data4, aes(x=Location, y=first_diff)) + 
+  geom_bar(stat = "identity", aes(fill=Air_pricier)) +
+  ylab("First Difference") + 
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1)) +
+  theme(axis.text.x=element_text(colour=a, size=10)) +
+  scale_fill_manual(values=c("darkgrey","darkblue")) +
+  theme(legend.position="none",
+        panel.background=element_blank())
+
+```
+
