@@ -4,8 +4,6 @@ title: About
 permalink: /about/
 ---
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](http://jekyllrb.com/)
+My name is Cyrus Mohammadian and I recently graduated with a doctorate in the Department of Political Science with an emphasis on spatial econometrics from the University of Southern California. I also receievd an MA in International Relations from the same institution and a BA in Political Science and Central Eurasian Studies from Indiana University, Bloomington. My research focuses on computational approaches to the study of migration, ethnic competition, and violence. I also enjoy playing soccer, hiking, camping, and cooking on my free time.
 
-You can find the source code for the Jekyll new theme at: [github.com/jglovier/jekyll-new](https://github.com/jglovier/jekyll-new)
-
-You can find the source code for Jekyll at [github.com/jekyll/jekyll](https://github.com/jekyll/jekyll)
+You can find more information about my reseach at my [website](http://www.cyrusmohammadian.com).

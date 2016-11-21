@@ -1,0 +1,471 @@
+---
+layout: post
+title: "Jeopardy and Big Data"
+comments:  false
+published:  true
+author: "Cyrus Mohammadian"
+categories: [R]
+output:
+  html_document:
+    mathjax:  default
+    fig_caption:  true
+---
+
+Those of you who read this blog already know I love data science but those that know me well know that Jeopardy is also one of my dearest passions. Using a [website](http://j-archive.com) that relies on user submissions to track every game, player, answer, clue, and score, I've compiled a sqlite database with that information stored in a series of tables. The data release is complete from 2015 back to 1997 -much of the 1990s before 1997 is near complete (I guesstimate around 85%) but data on games played before the 90s is sparse.  
+
+As an initial exercise, I thought it would be neat to look at the distribution of contestants' hometowns. Which cities and regions produce the most contestants? I used sqlite and a number of R packages to manage and manipulate the data. 
+ 
+The first plot below maps the hometowns of each jeopardy contestant in the dataset. As expected, densely populated regions produce more participants -Southern California, the Bay Area, Tristate Region, and the Northeast. 
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Load dependencies
+library(RSQLite) #data retrieval 
+library(dplyr) #data management
+library(devtools) #install
+library(ggplot2) #graphing
+library(USAboundaries) #mapping
+library(splitstackshape) #data management
+library(cowplot) #ggplot2 theme
+library(maps) #mapping
+
+
+#Connect to local SQL server and download data
+temp <- tempfile()
+download.file("https://github.com/cmohamma/jeopardy/blob/master/database.sqlite?raw=true", temp)
+db <- dbConnect(SQLite(), dbname=temp)
+dbListTables(db)
+
+players<- dbGetQuery( db,'
+                      select location 
+                      from players
+                      ' )
+
+#Exclude celebrity, university, and military based on 
+#associated key words
+players_loc<-filter(players, grepl(",", location))
+players_loc<-filter(players_loc, !grepl("University|College|from|and", location))
+players_loc<-filter(players_loc, !grepl("stationed|now", location))
+players_loc<-filter(players_loc, !grepl("E.R.|Frasier|Performing|Talk|Comedians|Horror|Crosby|Medicine|Legal|Spinal|Whisperer|Yellowstone", 
+                                        location))
+```
+
+```{r, fig.align='center', include=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API. It's also much faster.
+geocode <- function( x, verbose=FALSE, service="google", returntype="coordinates", ... ) {
+  UseMethod("geocode",x)
+}
+geocode.default <- function(x,verbose=FALSE, service="google", returntype="coordinates", ...) {
+  if( is.na( x ) | gsub(" *", "", x) == ""  ) return(c(NA,NA))
+  service <- tolower(service)
+  BingMapsKey <- getOption("BingMapsKey")
+  if(service=="bing" && is.null(BingMapsKey) ) stop("To use Bing, you must save your Bing Maps API key (obtain at http://msdn.microsoft.com/en-us/library/ff428642.aspx) using options(BingMapsKey='mykey').\n")
+  construct.geocode.url <- list()
+  construct.geocode.url[["google"]] <- function(address, return.call = "json", sensor = "false") {
+    root <- "http://maps.google.com/maps/api/geocode/"
+    u <- paste(root, return.call, "?address=", address, "&sensor=", sensor, sep = "")
+    return(URLencode(u))  
+  }
+  construct.geocode.url[["bing"]] <- function(address, maxResults=1) {
+    root <- "http://dev.virtualearth.net/REST/v1/Locations"
+    u <- paste0(root, "?query=", address, "&maxResults=",maxResults,"&key=",BingMapsKey)
+    return(URLencode(u))
+  }
+  if(verbose) message(x,appendLF=FALSE)
+  u <- construct.geocode.url[[service]](x)
+  doc <- RCurl::getURL(u)
+  j <- RJSONIO::fromJSON(doc,simplify = FALSE)
+  parse.json <- list()
+  parse.json[["google"]] <- function(j) {
+    if(j$status=="OK") {
+      res <- list()
+      if( "coordinates" %in% returntype ) {
+        lat <- j$results[[1]]$geometry$location$lat
+        lng <- j$results[[1]]$geometry$location$lng
+        res$coordinates <- c(lat, lng)
+      }
+      if( "zip" %in% returntype )  {
+        zp <- j$results[[1]]$address_components[[8]]$short_name
+        if( j$results[[1]]$address_components[[8]]$types[[1]] != "postal_code" )  warning(paste("Not sure these zips are actually zips.  Type:", j$results[[1]]$address_components[[8]]$types[[1]]) )
+        res$zip <- zp
+      }
+      return( res )
+    } else {
+      if(j$status=="OVER_QUERY_LIMIT") warning("Google's geocoding quota appears to have been reached for the day.")
+      return(c(NA,NA))
+    }
+  }
+  parse.json[["bing"]] <- function(j) {
+    if(j$authenticationResultCode != "ValidCredentials") {
+      warning("Your BingMapsKey was not accepted.")
+      return(c(NA,NA))
+    }
+    if(j$statusDescription!="OK") {
+      warning("Something went wrong. Bing Maps API return status code ",j$statusCode," - ", j$statusDescription)
+      return(c(NA,NA))
+    }
+    if(j$resourceSets[[1]]$estimatedTotal==0) {
+      warning("Didn't find any points")
+      return(c(NA,NA))
+    }
+    if(verbose) message(" - Confidence: ", j$resourceSets[[1]]$resources[[1]]$confidence ,appendLF=FALSE)
+    res <- list()
+    if( "coordinates" %in% returntype ) {
+      crds <- unlist(j$resourceSets[[1]]$resources[[1]]$point$coordinates)
+      res$coordinates <- crds
+    }
+    if( "zip" %in% returntype )  {
+      res$zip <- sub( "^.*(\\d{5}-?\\d?\\d?\\d?\\d?).*$", "\\1", j$resourceSets[[1]]$resources[[1]]$address$formattedAddress )
+    }
+    return( res )
+  }
+  res <- parse.json[[service]](j)
+  if(length(returntype)==1) res <- res[[1]]
+  if(verbose) message("\n",appendLF=FALSE)
+  return( res )
+}
+
+#Vectorize function
+geocodeVect <- Vectorize(geocode, vectorize.args="x")
+
+```
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Batch geocode with Bing
+options(BingMapsKey="AtquMkrNaB7ME7krIpwQgrTwEqwB0HbUEpRKb9wfpBW-xCbgBzrGabEyUGkdpO0G")
+
+coord<-geocodeVect(players_loc$location, service="bing", #geocodeVect is a loaded function -see below post for script
+                       returntype="coordinates")
+coord.full<-as.data.frame(t(as.data.frame(coord)))
+coord.full$location<-rownames(coord.full)
+rownames(coord.full)<-NULL
+
+#Clean date
+coord.full$loc<-gsub('[[:digit:]]', '', coord.full$location)
+coord.full$loc<-gsub("..", ", ", coord.full$loc, fixed = TRUE)
+coord.full$loc<-gsub(".", " ", coord.full$loc, fixed = TRUE)
+coord.full$loc<-gsub("St, ", "St. ", coord.full$loc, fixed = TRUE)
+coord.full$loc<-gsub("Mt, ", "Mt. ", coord.full$loc, fixed = TRUE)
+coord.full$loc2<-gsub(" D C,", " DC", coord.full$loc, fixed = TRUE)
+coord.full$loc2[coord.full$loc2=="Washington, D C "]<-"Washington, DC"
+
+coord.full<-cSplit(coord.full, "loc2", ",")
+coord.full$loc2_1_c<-as.character(coord.full$loc2_1)
+coord.full$loc2_2_c<-as.character(coord.full$loc2_2)
+coord.full$loc2_3_c<-as.character(coord.full$loc2_3)
+coord.full[coord.full$loc2_2_c == "British Columbia", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_1=="Antwerp", "loc2_3_c"] <- "Belgium"
+coord.full[coord.full$loc2_2_c == "Canada", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "China", "loc2_3_c"] <- "China"
+coord.full[coord.full$loc2_2_c == "Cuba", "loc2_3_c"] <- "Cuba"
+coord.full[coord.full$loc2_2_c == "Germany", "loc2_3_c"] <- "Germany"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "Ilinois"] <- "Illinois"
+coord.full[coord.full$loc2_2_c == "Mexico", "loc2_3_c"] <- "Mexico"
+coord.full[coord.full$loc2_2_c == "Ontario", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "Philippines", "loc2_3_c"] <- "Philippines"
+coord.full[coord.full$loc2_2_c == "Quebec", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "South Africa", "loc2_3_c"] <- "South Africa"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "West Germany"] <- "Germany"
+coord.full[coord.full$loc2_2_c == "Germany", "loc2_3_c"] <- "Germany"
+coord.full[coord.full$loc2_1_c == "Hameln", "loc2_3_c"] <- "Germany"
+coord.full[coord.full$loc2_2_c == "India", "loc2_3_c"] <- "India"
+coord.full[coord.full$loc2_2_c == "Italy", "loc2_3_c"] <- "Italy"
+coord.full[coord.full$loc2_2_c == "Japan", "loc2_3_c"] <- "Japan"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "Indinia"] <- "Indiana"
+coord.full[coord.full$loc2_2_c == "Manitoba", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "Alberta", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "Austria", "loc2_3_c"] <- "Austria"
+coord.full[coord.full$loc2_2_c == "Czechoslovakia", "loc2_3_c"] <- "Czechoslovakia"
+coord.full[coord.full$loc2_2_c == "Denmark", "loc2_3_c"] <- "Denmark"
+coord.full[coord.full$loc2_2_c == "Estonia", "loc2_3_c"] <- "Estonia"
+coord.full[coord.full$loc2_2_c == "Hungary", "loc2_3_c"] <- "Hungary"
+coord.full[coord.full$loc2_2_c == "Indonesia", "loc2_3_c"] <- "Indonesia"
+coord.full[coord.full$loc2_2_c == "Israel", "loc2_3_c"] <- "Israel"
+coord.full[coord.full$loc2_2_c == "Northwest Territories", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "Nova Scotia", "loc2_3_c"] <- "Canada"
+coord.full[coord.full$loc2_2_c == "Norway", "loc2_3_c"] <- "Norway"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "Ontario Canada"] <- "Ontario"
+coord.full[coord.full$loc2_2_c == "Peru", "loc2_3_c"] <- "Peru"
+coord.full[coord.full$loc2_2_c == "Russia", "loc2_3_c"] <- "Russia"
+coord.full[coord.full$loc2_2_c == "Sweden", "loc2_3_c"] <- "Sweden"
+coord.full[coord.full$loc2_2_c == "Ukraine", "loc2_3_c"] <- "Ukraine"
+coord.full[coord.full$loc2_2_c == "United Kingdom", "loc2_3_c"] <- "United Kingdom"
+coord.full[coord.full$loc2_2_c == "West Indies", "loc2_3_c"] <- "West Indies"
+coord.full[coord.full$loc2_2_c == "Australia", "loc2_3_c"] <- "Australia"
+coord.full[coord.full$loc2_2_c == "Zaire", "loc2_3_c"] <- "Zaire"
+coord.full[coord.full$loc2_2_c == "IL", "loc2_3_c"] <- "Illinois"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "Ilinois"] <- "Illinois"
+coord.full$loc2_3_c[is.na(coord.full$loc2_3_c)]<-"USA"
+coord.full$loc2_2_c[coord.full$loc2_2_c == "Las Vegas"] <- "Nevada"
+coord.full<-filter(coord.full, location!="Beverly.Hills..90210")
+coord.full<-filter(coord.full, loc2_2!="NA")
+coord.full<-filter(coord.full, V1!="NA")
+
+#Subset to US only
+coord.full<-filter(coord.full, loc2_3_c=="USA")
+
+jeop.loc<-coord.full
+jeop.loc<-select(jeop.loc, location, loc2_1_c, loc2_2_c, loc2_3_c, V1, V2)
+colnames(jeop.loc)<-c("location","city", "state","country","lat","long")
+
+#More data cleaning
+jeop.loc[jeop.loc$state == "India", "country"] <- "India"
+jeop.loc[jeop.loc$state == "Germany", "country"] <- "Germany"
+jeop.loc[jeop.loc$state == "Japan", "country"] <- "Japan"
+jeop.loc[jeop.loc$state == "Italy", "country"] <- "Italy"
+jeop.loc[jeop.loc$state == "Manitoba", "country"] <- "Canada"
+jeop.loc$state[jeop.loc$state == "New Nork"] <- "New York"
+jeop.loc[jeop.loc$state == "Montreal", "country"] <- "Canada"
+jeop.loc$state[jeop.loc$state == "IL"] <- "Illinois"
+jeop.loc[jeop.loc$state == "Manitoba ", "country"] <- "Canada"
+jeop.loc$state[jeop.loc$state == "Deleware"] <- "Delaware"
+jeop.loc[jeop.loc$state == "Turkey", "country"] <- "Turkey"
+jeop.loc$state[jeop.loc$state == "Kenrucky"] <- "Kentucky"
+jeop.loc$state[jeop.loc$state == "Caifornia"] <- "California"
+jeop.loc$state[jeop.loc$state == "Onio"] <- "Ohio"
+jeop.loc$state[jeop.loc$state == "Missiouri"] <- "Missouri"
+jeop.loc$state[jeop.loc$state == "Nevade"] <- "Nevada"
+jeop.loc$state[jeop.loc$state=="DC"]<-"District of Columbia"
+
+#Get count by city
+jeop.loc.point<-jeop.loc %>%
+  group_by(lat, long, city, state) %>%
+  filter(country=="USA" & state!="American Samoa") %>%
+  summarize(count=n())
+
+#Obtain map
+states <- map_data("state")
+states <- states[order(states$order), ]
+jeop.loc.point<-as.data.frame(jeop.loc.point)
+
+#Continental US only for 1st map
+jeop.contin<-filter(jeop.loc.point, state!="Alaska" & state!="Hawaii" & long< -3)
+
+#Map it
+ggplot() +
+  geom_polygon(data=states, aes(long, lat, group=group),size=0.1,fill="grey", color="black") +
+  geom_point(data=jeop.contin, aes(long, lat, size=count), color="red") +
+  geom_point(data=jeop.contin, 
+             shape = 1, aes(long, lat, size=count), colour = "black", alpha=0.2) +
+  theme(axis.line=element_blank(), 
+        axis.text=element_blank(), 
+        axis.ticks=element_blank()) +
+  xlab("") + ylab("") 
+
+```
+
+The ten most represented cities among Jeopardy contestants are:
+
+1. Los Angeles, CA 316
+2. New York City, NY 299
+3. Washington, D.C. 228
+4. Chicago, IL 197
+5. Brooklyn, NY 142
+6. San Diego, CA 108
+7. Atlanta, GA 101
+8. Seattle, WA 101
+9. Philadelphia, PA 90
+10. Arlington, VA 89
+
+Of course, these cities are among some of the most populated in the country. But which cities or regions produce more contestants relative to their overall populations? To answer that the data needs to be normalized according to population. One simple way to do this is to look at all major cities with populations above 40,000 and divide the number of contestants by the total population and then multiply by 10,000 to get the number of contestants per 10,000 residents. The ten most represented major cities relative to population among Jeopardy contestants are (rounded to nearest whole number):
+ 
+1. Marietta, GA 5
+2. Arlington, VA 5
+3. Cambridge, MA 4
+4. Washington DC 4
+5. Santa Monica, CA 4
+6. Arlington, MA 3
+7. Somerville, MA 3
+8. Wilmington, DE 3
+9. Oak Park, IL 3
+10. Evanston, IL 3
+
+Mapping city densities creates too many overlapping visual cues and the data above doesn't include smaller cities. Another way of normalizing the data by population that also allows for easy mapping is to aggregate the total number of contestants per county and divide that figure by the county's total population. To visualize the entirety of the data using a normalized density measure, I've aggregated the total number of contestants for each of the US's 3,000 + counties (Alaska and Hawaii included) and divided that figure by each county's population total and mapped it using R's ggplot2 function.
+
+```{r, fig.align='right', fig.width=10, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+#Again produce county by city (because data must be in [tbl_1, data.frame] format)
+jeop.loc.point<-jeop.loc %>%
+  group_by(lat, long, city, state) %>%
+  filter(country=="USA" & state!="American Samoa") %>%
+  summarize(count=n())
+
+#Degroup data frame
+jeop.loc.point$lat2<-jeop.loc.point$lat
+jeop.loc.point<-jeop.loc.point[,2:6]
+jeop.loc.point$lat<-jeop.loc.point$lat2
+jeop.loc.point$lat2<-NULL
+jeop.loc.point<-select(jeop.loc.point, lat, long, city, state, count)
+
+#Load dependencies
+devtools::install_github("hrbrmstr/albersusa")
+library(albersusa)
+library(readr)
+library(dplyr)
+library(rgeos)
+library(maptools)
+library(ggplot2)
+library(ggalt)
+library(ggthemes)
+library(viridis)
+library(rgdal)
+
+#Begin mapping
+df<-jeop.loc.point
+usa <- counties_composite() 
+
+#Get map
+URL <- "http://eric.clst.org/wupl/Stuff/gz_2010_us_050_00_500k.json"
+fil <- basename(URL)
+if (!file.exists(fil)) download.file(URL, fil)
+orig_counties <- readOGR(fil, "OGRGeoJSON", stringsAsFactors=FALSE)
+
+#Add CRS format
+pts <- as.data.frame(df[,1:2])
+coordinates(pts) <- ~long+lat
+proj4string(pts) <- CRS(proj4string(orig_counties))
+
+#Spatial overlay with fips code
+bind_cols(df, over(pts, orig_counties)) %>% 
+  mutate(fips=sprintf("%s%s", STATE, COUNTY)) %>% 
+  count(fips, wt=count) -> df
+
+#Merge data back with original map data and generate count/population
+final<-merge(usa@data, df,by="fips",all.x=FALSE)
+final$popn<-final$n/final$population
+final$popn<-final$popn*10000
+
+#Fortify data for ggplot2 graphics
+usa_map <- fortify(usa, region="fips")
+
+#Map
+gg <- ggplot()
+gg <- gg + geom_map(data=usa_map, map=usa_map,
+                    aes(long, lat, map_id=id),
+                    color="#b2b2b2", size=0.05, fill="white")
+gg <- gg + geom_map(data=final, map=usa_map,
+                    aes(fill=popn, map_id=fips),
+                    color="#b2b2b2", size=0.05)
+gg <- gg + scale_fill_viridis(name="Count", trans="log10")
+gg <- gg + coord_proj(us_aeqd_proj)
+gg <- gg + theme_map()
+gg <- gg + theme(legend.position=c(0.85, 0.2))
+gg
+
+```
+
+Normalizing the data by population reveals that many of the most "contestant dense" counties are actually found in low density regions such as the Northeast and the Midwest. Querying the top search results reveals the top 10[^1] most contestant dense counties in the country.[^2] 
+
+The query results confirm our visual inspect that contestant dense counties tend to be less densely populated. In fact, of the 10 most contest dense counties, only two counties had a population of greater than 45,000 -Washington D.C. and Arlington, VA. Also worthy of note, the D.C. metropolitan area in particular and Virginia more broadly, seem to be fertile breeding grounds for Jeopardy contestants. Of the 10 most contestant dense counties in the US, 6 are found in Virginia alone (not to mention D.C.).  
+ 
+1. Falls Church, VA 13
+2. Fairfax, VA 8
+3. Hyde, South Dakota 7
+4. Siskiyou, California 6
+5. Fredericksburg, VA 5
+6. Charlottesville, VA 5
+7. Arlington, VA 4
+8. Washington D.C. 4
+9. Williamsburg, VA 4
+10. Rush, KS 3
+ 
+Of counties with populations greater than 500,000, the 10 top ten most contestant dense are the following:
+ 
+1. Washington D.C.
+2. Queens, NY
+3. Suffolk, MA
+4. Middlesex, MA
+5. Fulton, GA
+6. San Francisco, CA
+7. Los Angeles, CA
+8. Travis, TX
+9. Fairfax, VA
+10. Denver, CO
+ 
+In future installments of this blog, I'll identify the most successful counties by total games won and total money won and I'll continue exploring other facets of the data as well.
+
+[^1]: Rounded to nearest whole number.
+[^2]: It must be noted that the US counties shapefile includes a number of cities as whole polygons, thus it's really a mix of counties and cities (US Census Bureau release).
+
+```{r,eval=FALSE, message=FALSE, comment=FALSE, error=FALSE, warning=FALSE}
+
+#Google Maps API limits querys to 2500 per day and fails to geocode smaller towns. So I wrote a function to geocode using Bing's API. It's also much faster than ggmaps's geocode().
+
+geocode <- function( x, verbose=FALSE, service="google", returntype="coordinates", ... ) {
+  UseMethod("geocode",x)
+}
+geocode.default <- function(x,verbose=FALSE, service="google", returntype="coordinates", ...) {
+  if( is.na( x ) | gsub(" *", "", x) == ""  ) return(c(NA,NA))
+  service <- tolower(service)
+  BingMapsKey <- getOption("BingMapsKey")
+  if(service=="bing" && is.null(BingMapsKey) ) stop("To use Bing, you must save your Bing Maps API key (obtain at http://msdn.microsoft.com/en-us/library/ff428642.aspx) using options(BingMapsKey='mykey').\n")
+  construct.geocode.url <- list()
+  construct.geocode.url[["google"]] <- function(address, return.call = "json", sensor = "false") {
+    root <- "http://maps.google.com/maps/api/geocode/"
+    u <- paste(root, return.call, "?address=", address, "&sensor=", sensor, sep = "")
+    return(URLencode(u))  
+  }
+  construct.geocode.url[["bing"]] <- function(address, maxResults=1) {
+    root <- "http://dev.virtualearth.net/REST/v1/Locations"
+    u <- paste0(root, "?query=", address, "&maxResults=",maxResults,"&key=",BingMapsKey)
+    return(URLencode(u))
+  }
+  if(verbose) message(x,appendLF=FALSE)
+  u <- construct.geocode.url[[service]](x)
+  doc <- RCurl::getURL(u)
+  j <- RJSONIO::fromJSON(doc,simplify = FALSE)
+  parse.json <- list()
+  parse.json[["google"]] <- function(j) {
+    if(j$status=="OK") {
+      res <- list()
+      if( "coordinates" %in% returntype ) {
+        lat <- j$results[[1]]$geometry$location$lat
+        lng <- j$results[[1]]$geometry$location$lng
+        res$coordinates <- c(lat, lng)
+      }
+      if( "zip" %in% returntype )  {
+        zp <- j$results[[1]]$address_components[[8]]$short_name
+        if( j$results[[1]]$address_components[[8]]$types[[1]] != "postal_code" )  warning(paste("Not sure these zips are actually zips.  Type:", j$results[[1]]$address_components[[8]]$types[[1]]) )
+        res$zip <- zp
+      }
+      return( res )
+    } else {
+      if(j$status=="OVER_QUERY_LIMIT") warning("Google's geocoding quota appears to have been reached for the day.")
+      return(c(NA,NA))
+    }
+  }
+  parse.json[["bing"]] <- function(j) {
+    if(j$authenticationResultCode != "ValidCredentials") {
+      warning("Your BingMapsKey was not accepted.")
+      return(c(NA,NA))
+    }
+    if(j$statusDescription!="OK") {
+      warning("Something went wrong. Bing Maps API return status code ",j$statusCode," - ", j$statusDescription)
+      return(c(NA,NA))
+    }
+    if(j$resourceSets[[1]]$estimatedTotal==0) {
+      warning("Didn't find any points")
+      return(c(NA,NA))
+    }
+    if(verbose) message(" - Confidence: ", j$resourceSets[[1]]$resources[[1]]$confidence ,appendLF=FALSE)
+    res <- list()
+    if( "coordinates" %in% returntype ) {
+      crds <- unlist(j$resourceSets[[1]]$resources[[1]]$point$coordinates)
+      res$coordinates <- crds
+    }
+    if( "zip" %in% returntype )  {
+      res$zip <- sub( "^.*(\\d{5}-?\\d?\\d?\\d?\\d?).*$", "\\1", j$resourceSets[[1]]$resources[[1]]$address$formattedAddress )
+    }
+    return( res )
+  }
+  res <- parse.json[[service]](j)
+  if(length(returntype)==1) res <- res[[1]]
+  if(verbose) message("\n",appendLF=FALSE)
+  return( res )
+}
+
+#Vectorize function
+geocodeVect <- Vectorize(geocode, vectorize.args="x")
+
+```
