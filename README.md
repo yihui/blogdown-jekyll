@@ -1,3 +1,7 @@
+Update (2017/02/06): if you are interested in building a website using R Markdown, I strongly recommend you to take a look at the [**blogdown**](https://github.com/rstudio/blogdown) package. The method introduced in this repo still works, but **blogdown** is much more powerful thanks to Hugo and Pandoc.
+
+---
+
 This is a minimal example of a Jekyll-based website using **knitr** and R
 Markdown. The interesting bit of this repo is that you can actually serve the
 Jekyll website locally with R, and R Markdown posts can be compiled
