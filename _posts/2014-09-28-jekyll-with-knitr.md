@@ -12,9 +12,9 @@ The R package [**servr**](https://github.com/yihui/servr) can be used to set up 
 
 [^1]: Determined by the modification time of files, i.e., `file.info(x)[, 'mtime']`.
 
-As a result, all you need to do is write your blog posts (R Markdown documents), and you do not need to worry about re-building the website or calling **knitr** commands. Whenever you save a blog post in your text editor, the web page will be updated on the fly. This is particularly handy in the [RStudio IDE](http://www.rstudio.com), because after you run `servr::jekyll()` in the console, you can start writing or editing your R Markdown posts, and the HTML output, displayed in the RStudio viewer pane, will be in sync with your source post in the source panel (see the screenshot below).
+As a result, all you need to do is write your blog posts (R Markdown documents). You do not need explicitly re-build the website or call **knitr** commands. Whenever you save a blog post in your text editor, the web page will be updated on the fly. This is particularly handy in the [RStudio IDE](https://www.rstudio.com), because after you run `servr::jekyll()` in the console, you can start writing or editing your R Markdown posts, and the HTML output, displayed in the RStudio viewer pane, will be in sync with your source post in the source panel (see the screenshot below).
 
-[![Jekyll with servr and knitr](http://i.imgur.com/gKVGhiP.png)](http://i.imgur.com/gKVGhiP.png)
+[![Jekyll with servr and knitr](//i.imgur.com/gKVGhiP.png)](//i.imgur.com/gKVGhiP.png)
 
 ## Prerequisites
 
@@ -22,10 +22,10 @@ You must have installed the packages **servr** (>= 0.2) and **knitr** (>= 1.8).
 
 
 {% highlight r %}
-install.packages(c("servr", "knitr"), repos = "http://cran.rstudio.com")
+install.packages(c("servr", "knitr"), repos = "https://cran.rstudio.com")
 {% endhighlight %}
 
-Of course, you have to install [Jekyll](http://jekyllrb.com) as well. For Windows users, you have to make sure `jekyll` can be found from your environment variable `PATH`, i.e., R can call it via `system('jekyll')`. This is normally not an issue for Linux or Mac OS X users (`gem install jekyll` is enough).
+Of course, you have to install [Jekyll](http://jekyllrb.com) as well. For Windows users, you have to make sure `jekyll` can be found from your environment variable `PATH`, i.e., R can call it via `system('jekyll')`. This is normally not an issue for Linux or macOS users (`gem install jekyll` is enough).
 
 ## R code chunks
 
@@ -115,7 +115,7 @@ par(mar = c(4, 4, 0.1, 0.1))
 plot(cars, pch = 19, col = "red")  # a scatterplot
 {% endhighlight %}
 
-![A scatterplot of the cars data](http://db.yihui.name/jekyll/2014-09-28-jekyll-with-knitr/cars-1.png) 
+![A scatterplot of the cars data](https://db.yihui.name/jekyll/2014-09-28-jekyll-with-knitr/cars-1.png)
 
 ## The build script
 
@@ -140,7 +140,7 @@ See `?servr::jekyll` for more details. You can define all your **knitr** options
 
 ## On the Markdown renderers
 
-Jekyll supports a number of Markdown renderers, such as kramdown, redcarpet, rdiscount, and so on. At the moment, it is a little annoying that kramdown supports LaTeX math expressions via `$$ math $$`[^4], but does not support syntax highlighting of code blocks using the three backticks syntax (you must write the awkward Liquid tags); on the other hand, redcarpet does not support LaTeX math but does support three backticks. In my opinion, all the different flavors and implementations of Markdown is the biggest problem of Markdown, since there is not an unambiguous spec for Markdown. [CommonMark](http://commonmark.org) looks like a promising project to set up a common spec for Markdown, and [Pandoc](http://johnmacfarlane.net/pandoc/) is a great implementation that has brought almost all the features that you may ever need in Markdown. You may find some Pandoc plugins for Jekyll by searching online. However, GitHub Pages does not support arbitrary Jekyll plugins, so you cannot just use a Pandoc plugin there, but that does not mean you cannot use Pandoc locally, nor does it mean you cannot push locally compiled HTML pages to GitHub Pages[^5].
+Jekyll supports a number of Markdown renderers, such as kramdown, redcarpet, rdiscount, and so on. At the moment, it is a little annoying that kramdown supports LaTeX math expressions via `$$ math $$`[^4], but does not support syntax highlighting of code blocks using the three backticks syntax (you must write the awkward Liquid tags); on the other hand, redcarpet does not support LaTeX math but does support three backticks. In my opinion, all the different flavors and implementations of Markdown is the biggest problem of Markdown, since there is not an unambiguous spec for Markdown. [CommonMark](http://commonmark.org) looks like a promising project to set up a common spec for Markdown, and [Pandoc](http://pandoc.org) is a great implementation that has brought almost all the features that you may ever need in Markdown. You may find some Pandoc plugins for Jekyll by searching online. However, GitHub Pages does not support arbitrary Jekyll plugins, so you cannot just use a Pandoc plugin there, but that does not mean you cannot use Pandoc locally, nor does it mean you cannot push locally compiled HTML pages to GitHub Pages[^5].
 
 [^4]: Unfortunately, kramdown does not support math expressions in single dollars, e.g. `$ \alpha $`.
 
