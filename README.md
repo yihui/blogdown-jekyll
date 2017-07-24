@@ -3,7 +3,7 @@ Update (2017/02/06): if you are interested in building a website using R Markdow
 ---
 
 This is a minimal example of a Jekyll-based website using **knitr** and R
-Markdown. The interesting bit of this repo is that you can actually serve the
+Markdown, briefly documented at <https://bookdown.org/yihui/blogdown/jekyll.html>. The interesting bit of this repo is that you can actually serve the
 Jekyll website locally with R, and R Markdown posts can be compiled
 automatically, with the web pages automatically refreshed as well.
 
