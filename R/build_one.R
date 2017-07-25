@@ -1,13 +1,11 @@
 local({
   # fall back on '/' if baseurl is not specified
-  baseurl = servr:::jekyll_config('.', 'baseurl', '/')
+  baseurl = blogdown:::jekyll_config('baseurl', '/')
   knitr::opts_knit$set(base.url = baseurl)
   # fall back on 'kramdown' if markdown engine is not specified
-  markdown = servr:::jekyll_config('.', 'markdown', 'kramdown')
-  # see if we need to use the Jekyll render in knitr
-  if (markdown == 'kramdown') {
-    knitr::render_jekyll()
-  } else knitr::render_markdown()
+  markdown = blogdown:::jekyll_config('markdown', 'kramdown')
+  # see if we need to use the Jekyll renderer in knitr
+  if (markdown == 'kramdown') knitr::render_jekyll() else knitr::render_markdown()
 
   # input/output filenames are passed as two additional arguments to Rscript
   a = commandArgs(TRUE)
@@ -16,8 +14,8 @@ local({
     fig.path   = sprintf('figure/%s/', d),
     cache.path = sprintf('cache/%s/', d)
   )
-  # set where you want to host the figures (I store them in my Dropbox folder,
-  # and you might prefer putting them in GIT)
+  # set where you want to host the figures (I store them in my Dropbox folder
+  # served via Updog.co, but you might prefer putting them in GIT)
   if (Sys.getenv('USER') == 'yihui') {
     # these settings are only for myself, and they will not apply to you, but
     # you may want to adapt them to your own website
@@ -27,6 +25,7 @@ local({
       base.url = 'https://db.yihui.name/jekyll/'
     )
   }
+  options(digits = 4)
   knitr::opts_knit$set(width = 70)
   knitr::knit(a[1], a[2], quiet = TRUE, encoding = 'UTF-8', envir = .GlobalEnv)
 })
