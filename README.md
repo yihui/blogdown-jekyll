@@ -1,6 +1,6 @@
 This is a minimal example of a Jekyll-based website using [**knitr**](https://yihui.name/knitr/), [**blogdown**](https://github.com/rstudio/blogdown), and R Markdown, briefly documented at <https://bookdown.org/yihui/blogdown/jekyll.html>.
 
-You can actually serve the Jekyll website locally with R, and R Markdown posts can be compiled automatically, with the web pages being automatically refreshed in your web browser as well. To build the serve the website locally, you need to install **blogdown** and call the `serve_site()` function:
+You can actually serve the Jekyll website locally with R, and R Markdown posts can be compiled automatically, with the web pages being automatically refreshed in your web browser as well. To build the serve the website locally, you need to install **blogdown** (and Jekyll, of course) and call the `serve_site()` function:
 
 ```r
 devtools::install_github("rstudio/blogdown")
