@@ -1,13 +1,13 @@
 ---
 layout: post
-title:  "Serve Jekyll Websites with servr and knitr"
+title:  "Build Jekyll Websites with knitr and blogdown"
 categories: [jekyll, rstats]
-tags: [knitr, servr, httpuv, websocket]
+tags: [blogdown, knitr, servr, httpuv, websocket]
 ---
 
-The R package [**servr**](https://github.com/yihui/servr) can be used to set up an HTTP server to serve files under a directory. Since **servr** v0.2, it has added a function `servr::jekyll()` specifically designed for websites based on Jekyll and R Markdown. The main features of this function are:
+The R package [**blogdown**](https://github.com/rstudio/blogdown) was designed mainly for the static site generator [Hugo](https://gohugo.io), but it can also be used to build websites based on Jekyll and R Markdown. The main features are:
 
-1. R Markdown source files are re-compiled through [**knitr**](http://yihui.name/knitr) when their corresponding Markdown output files become older[^1] than source files;
+1. R Markdown source files are re-compiled through [**knitr**](https://yihui.name/knitr/) when their corresponding Markdown output files become older[^1] than source files;
 1. The web page will refresh itself automatically in the above case as well;
 
 [^1]: Determined by the modification time of files, i.e., `file.info(x)[, 'mtime']`.
@@ -18,10 +18,10 @@ As a result, all you need to do is write your blog posts (R Markdown documents).
 
 ## Prerequisites
 
-You must have installed the packages **servr** (>= 0.2) and **knitr** (>= 1.8).
+You must have installed the packages **blogdown** (>= 0.0.55).
 
 ```{r eval=FALSE}
-install.packages(c('servr', 'knitr'), repos = 'https://cran.rstudio.com')
+devtools::install_github('rstudio/blogdown')
 ```
 
 Of course, you have to install [Jekyll](http://jekyllrb.com) as well. For Windows users, you have to make sure `jekyll` can be found from your environment variable `PATH`, i.e., R can call it via `system('jekyll')`. This is normally not an issue for Linux or macOS users (`gem install jekyll` is enough).
@@ -54,20 +54,7 @@ plot(cars, pch = 19, col = 'red')  # a scatterplot
 
 ## The build script
 
-Zero-configuration is required for `servr::jekyll()` to work on your Jekyll website. However, there is always demand for more control over some options, which can be defined in a custom build script. Here are the arguments of `servr::jekyll()`:
-
-```{r code=formatR::usage(servr::jekyll), eval=FALSE}
-```
-
-By default, `jekyll()` looks for `.Rmd` files under the root directory, the `_source` directory, and the `_posts` directory of the Jekyll website. For example, if you put your R Markdown posts under `_source`, they will be compiled to the `_posts` directory[^3].
-
-[^3]: The reason that we may need to write R Markdown posts in `_source` instead of `_posts` is that Jekyll has [a subtle bug](https://github.com/jekyll/jekyll/pull/3147) (fixed in v2.5.3): its variable `site.posts` will count `.Rmd` files under `_posts` as well. The consequence is, if you list all the posts of your website, the post `_posts/yyyy-mm-dd-foo.md` will show up twice due to the existence of `_posts/yyyy-mm-dd-foo.Rmd`, therefore I would recommend you to put your R Markdown posts in a separate directory, such as `_source`.
-
-The `script` argument specifies a Makefile or an R script to be used to compile your R Markdown files. If it is a Makefile, `jekyll()` will run `make -q` to see if the site needs to be recompiled, then `make` if it does. If the script is an R script, say, named `build.R`, it is called via command line of the form
-
-    Rscript build.R arg1 arg2
-
-See `?servr::jekyll` for more details. You can define all your **knitr** options and any other options in this R script. See the script [build.R](https://github.com/yihui/knitr-jekyll/blob/gh-pages/build.R) in the knitr-jekyll repository for an example: it will automatically set up the output renderers for **knitr**, e.g., when the Jekyll Markdown engine is `kramdown`, this script will call `knitr::render_jekyll()` so that the code chunk output will be put inside the Liquid tag `{% raw %}{% highlight lang %} {% endhighlight %}{% endraw %}`; it also sets up some **knitr** chunk and package options so that figures can be displayed correctly. For those who do not wish to store images in GIT (because normally they are binary files), you may check out how I host my images in Dropbox for this repository (see the code below `Sys.getenv('USER') == 'yihui'`).
+You can define all your **knitr** options and any other options in an R script. See the script [`R/build.R`](https://github.com/yihui/knitr-jekyll/blob/gh-pages/R/build.R) in the knitr-jekyll repository for an example: it calls the script [`R/build_one.R`](https://github.com/yihui/knitr-jekyll/blob/gh-pages/R/build_one.R) that will automatically set up the output renderers for **knitr**, e.g., when the Jekyll Markdown engine is `kramdown`, this script will call `knitr::render_jekyll()` so that the code chunk output will be put inside the Liquid tag `{% raw %}{% highlight lang %} {% endhighlight %}{% endraw %}`; it also sets up some **knitr** chunk and package options so that figures can be displayed correctly. For those who do not wish to store images in GIT (because normally they are binary files), you may check out how I host my images in Dropbox for this repository (see the code below `Sys.getenv('USER') == 'yihui'`).
 
 ## On the Markdown renderers
 
