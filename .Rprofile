@@ -1,1 +1,4 @@
-options(blogdown.generator = 'jekyll', blogdown.method = 'custom', servr.daemon = TRUE)
+options(
+  blogdown.generator = 'jekyll', blogdown.method = 'custom',
+  blogdown.subdir = '_posts', servr.daemon = TRUE
+)
