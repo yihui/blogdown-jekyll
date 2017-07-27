@@ -1,9 +1,9 @@
 local({
   # fall back on '/' if baseurl is not specified
-  baseurl = blogdown:::get_config('baseurl', '/')
+  baseurl = blogdown:::get_config2('baseurl', '/')
   knitr::opts_knit$set(base.url = baseurl)
   # fall back on 'kramdown' if markdown engine is not specified
-  markdown = blogdown:::get_config('markdown', 'kramdown')
+  markdown = blogdown:::get_config2('markdown', 'kramdown')
   # see if we need to use the Jekyll renderer in knitr
   if (markdown == 'kramdown') knitr::render_jekyll() else knitr::render_markdown()
 
