@@ -9,7 +9,7 @@ build_one = function(io) {
   }
 }
 
-# Rmd files under the content directory
+# Rmd files under the root directory
 rmds = list.files('.', '[.]Rmd$', recursive = TRUE, full.names = TRUE)
 files = cbind(rmds, blogdown:::with_ext(rmds, '.md'))
 
