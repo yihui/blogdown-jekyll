@@ -12,7 +12,7 @@ The R package [**blogdown**](https://github.com/rstudio/blogdown) was designed m
 
 [^1]: Determined by the modification time of files, i.e., `file.info(x)[, 'mtime']`.
 
-As a result, all you need to do is write your blog posts (R Markdown documents). You do not need to explicitly re-build the website or call **knitr** commands. Whenever you save a blog post in your text editor, the web page will be updated on the fly. This is particularly handy in the [RStudio IDE](https://www.rstudio.com), because after you run `servr::jekyll()` in the console, you can start writing or editing your R Markdown posts, and the HTML output, displayed in the RStudio viewer pane, will be in sync with your source post in the source panel (see the screenshot below).
+As a result, all you need to do is write your blog posts (R Markdown documents). You do not need to explicitly re-build the website or call **knitr** commands. Whenever you save a blog post in your text editor, the web page will be updated on the fly. This is particularly handy in the [RStudio IDE](https://www.rstudio.com), because after you run `blogdown::serve_site()` in the console, you can start writing or editing your R Markdown posts, and the HTML output, displayed in the RStudio viewer pane, will be in sync with your source post in the source panel (see the screenshot below).
 
 [![Jekyll with servr and knitr](//i.imgur.com/gKVGhiP.png)](//i.imgur.com/gKVGhiP.png)
 
